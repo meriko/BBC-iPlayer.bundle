@@ -20,6 +20,9 @@ BBC_SEARCH_URL                = "%s/iplayer/search?q=%%s&page=%%s" % BBC_URL
 BBC_SEARCH_TV_URL             = BBC_SEARCH_URL + "&filter=tv"
 BBC_SEARCH_RADIO_URL          = BBC_SEARCH_URL + "&filter=radio"
 
+RE_SEARCH = Regex('episodeRegistry\\.addData\\((.*?)\\);', Regex.IGNORECASE | Regex.DOTALL)
+RE_SEARCH_NEXT = Regex('title="Next page"')
+
 ART_DEFAULT                   = "art-default.jpg"
 ART_WALL                      = "art-wall.jpg"
 ICON_DEFAULT                  = "icon-default.png"
@@ -134,76 +137,87 @@ def AddRadioStations(title):
 
 ####################################################################################################
 
-def AddCategories(sender, query = None, channel_name = None, channel_id = None, thumb = None, thumb_url = BBC_SD_THUMB_URL, player_url = BBC_SD_PLAYER_URL % Prefs['sd_video_quality']):
+def AddCategories(title, query = None, channel_name = None, channel_id = None, thumb = None, thumb_url = BBC_SD_THUMB_URL, player_url = BBC_SD_PLAYER_URL % Prefs['sd_video_quality']):
 
-  # returns a list of the various categories / genres displayed on the iPlayer web site
+  oc = ObjectContainer(title2 = title)
 
-  dir = MediaContainer(title1 = sender.title2, title2 = sender.itemTitle, viewGroup = "Info")
+  #             (title,           category_id      has_subcategories
+  categories = [("Children's",    'childrens',     1),
+          ("Comedy",        'comedy',        1),
+        ("Drama",         'drama',         1),
+          ("Entertainment", 'entertainment', 1),
+          ("Factual",       'factual',       1),
+          ("Learning",      'learning',      1),
+          ("Music",         'music',         1),
+          ("News",          'news',          0),
+          ("Sport",         'sport',         1)]
 
-  dir.Append(Function(DirectoryItem(CategoryContainer, title = "Children's", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, category_id = "childrens", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(CategoryContainer, title = "Comedy", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, category_id = "comedy", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(CategoryContainer, title = "Drama", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, category_id = "drama", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(CategoryContainer, title = "Entertainment", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, category_id = "entertainment", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(CategoryContainer, title = "Factual", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, category_id = "factual", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(CategoryContainer, title = "Learning", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, category_id = "learning", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(CategoryContainer, title = "Music", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, category_id = "music", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(CategoryContainer, title = "News", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, category_id = "news", channel_id = channel_id, has_subcategories = 0, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(CategoryContainer, title = "Sport", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, category_id = "sport", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
+  for (title, category_id, has_subcategories) in categories:
+    oc.add(DirectoryObject(
+      key = Callback(CategoryContainer, title = title, thumb = thumb, category_id = category_id , channel_id  = channel_id, has_subcategories = has_subcategories, thumb_url = thumb_url, player_url = player_url),
+      title = title,
+      thumb = thumb))
 
-  return dir
-
-####################################################################################################
-
-def AddFormats(sender, query = None, channel_name = None, channel_id = None, thumb = None, thumb_url = BBC_SD_THUMB_URL, player_url = BBC_SD_PLAYER_URL % Prefs['sd_video_quality']):
-
-  # returns a list of the various programme formats displayed on the iPlayer web site
-
-  dir = MediaContainer(title1 = sender.title2, title2 = sender.itemTitle, viewGroup = "Info")
-
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Animation", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "animation", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Appeals", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "appeals", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Bulletins", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "bulletins", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Discussion & Talk", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "discussionandtalk", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Docudramas", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "docudramas", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Documentaries", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "documentaries", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Films", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "films", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Games & Quizzes", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "gamesandquizzes", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Magazines & Reviews", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "magazinesandreviews", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Makeovers", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "makeovers", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Performances & Events", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "performancesandevents", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Phone-ins", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "phoneins", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Readings", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "readings", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Reality", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "reality", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-  dir.Append(Function(DirectoryItem(FormatContainer, title = "Talent Shows", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, format_id = "talentshows", channel_id = channel_id, thumb_url = thumb_url, player_url = player_url))
-
-  return dir
+  return oc
 
 ####################################################################################################
 
-def AddAToZ(sender, query = None):
+def AddFormats(title, query = None, channel_name = None, channel_id = None, thumb = None, thumb_url = BBC_SD_THUMB_URL, player_url = BBC_SD_PLAYER_URL % Prefs['sd_video_quality']):
 
-  # returns an A-Z list of links to an RSS feed for each letter (plus 0-9)
+  oc = ObjectContainer(title2 = title)
 
-  dir = MediaContainer(title1 = sender.title2, title2 = sender.itemTitle, viewGroup = "Menu")
+  #           title                    format_id
+  formats = [('Animation',             'animation'),
+             ('Appeals',               'appeals'),
+             ('Bulletins',             'bulletins'),
+             ('Discussion & Talk',     'discussionandtalk'),
+             ('Docudramas',            'docudramas'),
+             ('Films',                 'films'),
+             ('Games & Quizzes',       'gamesandquizzes'),
+             ('Magazines & Reviews',   'magazinesandreviews'),
+             ('Makeovers',             'makeovers'),
+             ('Performances & Events', 'performancesandevents'),
+             ('Phone-ins',             'phoneins'),
+             ('Readings',              'readings'),
+             ('Reality',               'reality'),
+             ('Talent Shows',          'talentshows'),
+
+  for (title, format_id) in formats:
+    oc.add(DirectoryObject(
+      key = Callback(FormatContainer, title = title, thumb = thumb, format_id = format_id , channel_id  = channel_id, thumb_url = thumb_url, player_url = player_url),
+      title = title,
+      thumb = thumb))
+
+  return oc
+
+####################################################################################################
+
+def AddAToZ(title):
+
+  oc = ObjectContainer(title2 = title, view_group = 'Menu')
 
   for letter in range (65, 91):
     thisLetter = chr(letter)
-    dir.Append(Function(DirectoryItem(RSSListContainer, title = thisLetter, subtitle = sender.itemTitle), url = BBC_FEED_URL + "/iplayer/atoz/%s/list" % thisLetter, sort_list = "alpha"))
+    oc.add(DirectoryObject(
+      key = Callback(RSSListContainer, url = BBC_FEED_URL + "/iplayer/atoz/%s/list" % thisLetter, sort_list = "alpha"),
+      title = thisLetter))
 
-  dir.Append(Function(DirectoryItem(RSSListContainer, title = "0-9", subtitle = sender.itemTitle), url = BBC_FEED_URL + "/iplayer/atoz/0-9/list", sort_list = "alpha"))
+  oc.add(DirectoryObject(
+    key = Callback(RSSListContainer, url = BBC_FEED_URL + "/iplayer/atoz/0-9/list" % thisLetter, sort_list = "alpha"),
+    title = '0-9'))
 
-  return dir
+  return oc
 
 ####################################################################################################
 
-def Search(sender, query, search_url = BBC_SEARCH_URL, page_num = 1):
+def Search(query, search_url = BBC_SEARCH_URL, page_num = 1):
 
-  dir = None
+  oc = None
 
   searchResults = HTTP.Request(search_url % (String.Quote(query),page_num)).content
 
   # Extract out JS object which contains program info.
-  match = re.search('episodeRegistry\\.addData\\((.*?)\\);',searchResults, re.IGNORECASE | re.DOTALL)
+  match = SEARCH.search(searchResults)
 
   if match:
     jsonObj = JSON.ObjectFromString(match.group(1))
@@ -219,19 +233,20 @@ def Search(sender, query, search_url = BBC_SEARCH_URL, page_num = 1):
 
       eps.sort(key=lambda ep: (ep['id'] in epOrder and (epOrder.index(ep['id']) + 1)) or 1000)
 
-      dir = JSONSSearchListContainer(sender,eps)
+      oc = JSONSSearchListContainer(query, eps)
 
-  if not dir or len(dir) == 0:
-    return MessageContainer(header = sender.itemTitle, message = "No programmes found.")
+  if not oc or len(oc) == 0:
+    return MessageContainer(header = query, message = "No programmes found.")
+
   else:
-    if page_num > 1:
-      dir.Insert(0,Function(DirectoryItem(Search, title='Previous...', thumb=R(ICON_SEARCH)), query = query, search_url = search_url, page_num = page_num - 1))
 
     # See if we need a next button.
-    if (re.search('title="Next page"', searchResults)):
-      dir.Append(Function(DirectoryItem(Search, title='More...', thumb=R(ICON_SEARCH)), query = query, search_url = search_url, page_num = page_num + 1))
+    if SEARCH_NEXT.search(searchResults):
+      oc.add(DirectoryObject(
+        key = Callback(Search, query = query, search_url = search_url, page_num = page_num + 1),
+        title = 'More...'))
 
-  return dir
+  return oc
 
 ####################################################################################################
 
