@@ -7,9 +7,9 @@ TITLE                         = "BBC iPlayer"
 
 BBC_URL                       = "http://www.bbc.co.uk"
 BBC_FEED_URL                  = "http://feeds.bbc.co.uk"
-BBC_SD_PLAYER_URL             = "%s/iplayer/episode/%%%%s#%%s" % BBC_URL
+BBC_SD_PLAYER_URL             = "%s/iplayer/episode/%%%%s" % BBC_URL
 BBC_HD_PLAYER_URL             = "%s/iplayer/episode/%%s/hd" % BBC_URL
-BBC_LIVE_TV_URL               = "%s/iplayer/tv/%%s/watchlive#%%s" % BBC_URL
+BBC_LIVE_TV_URL               = "%s/iplayer/tv/%%s/watchlive" % BBC_URL
 BBC_LIVE_RADIO_URL            = "%s/iplayer/radio/%%s/listenlive" % BBC_URL
 BBC_SD_THUMB_URL              = "http://node2.bbcimg.co.uk/iplayer/images/episode/%s_640_360.jpg"
 BBC_HD_THUMB_URL              = "http://node2.bbcimg.co.uk/iplayer/images/episode/%s_832_468.jpg"
@@ -33,78 +33,104 @@ def Start():
   Plugin.AddPrefixHandler("/video/iplayer", MainMenu, TITLE, ICON_DEFAULT, ART_WALL)
   Plugin.AddViewGroup("Menu", viewMode = "List", mediaType = "items")
   Plugin.AddViewGroup("Info", viewMode = "InfoList", mediaType = "items")
-  MediaContainer.art = R(ART_DEFAULT)
-  MediaContainer.viewGroup = "Menu"
-  MediaContainer.title1 = TITLE
-  DirectoryItem.thumb = R(ICON_DEFAULT)
+
+  ObjectContainer.art = R(ART_DEFAULT)
+  ObjectContainer.view_group = "Info"
+  ObjectContainer.title1 = TITLE
+
+  DirectoryObject.art = R(ICON_DEFAULT)
+  DirectoryObject.thumb = R(ICON_DEFAULT)
+
+  InputDirectoryObject.art = R(ICON_DEFAULT)
+  InputDirectoryObject.thumb = R(ICON_SEARCH)
+
+  PrefsObject.art = R(ICON_DEFAULT)
+  PrefsObject.thumb = R(ICON_PREFS)
+
   HTTP.CacheTime = CACHE_1HOUR
   HTTP.Headers['User-agent'] = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.11) Gecko/20101012 Firefox/3.6.11"
 
 ####################################################################################################
 
 def MainMenu():
-  dir = MediaContainer()
+  oc = ObjectContainer()
 
-  dir.Append(Function(DirectoryItem(RSSListContainer, title = "TV Highlights"), url = BBC_FEED_URL + "/iplayer/highlights/tv"))
-  dir.Append(Function(DirectoryItem(RSSListContainer, title = "Radio Highlights"), url = BBC_FEED_URL + "/iplayer/highlights/radio"))
+  oc.add(DirectoryObject(key = Callback(RSSListContainer, url = BBC_FEED_URL + "/iplayer/highlights/tv", title = "TV Highlights"), title = "TV Highlights"))
+  oc.add(DirectoryObject(key = Callback(RSSListContainer, url = BBC_FEED_URL + "/iplayer/highlights/radio", title = "Radio Highlights"), title = "Radio Highlights"))
 
-  dir.Append(Function(DirectoryItem(RSSListContainer, title = "Most Popular TV"), url = BBC_FEED_URL + "/iplayer/popular/tv"))
-  dir.Append(Function(DirectoryItem(RSSListContainer, title = "Most Popular Radio"), url = BBC_FEED_URL + "/iplayer/popular/radio"))
+  oc.add(DirectoryObject(key = Callback(RSSListContainer, url = BBC_FEED_URL + "/iplayer/popular/tv", title = "Most Popular TV"), title = "Most Popular TV"))
+  oc.add(DirectoryObject(key = Callback(RSSListContainer, url = BBC_FEED_URL + "/iplayer/popular/radio", title = "Most Popular Radio"), title = "Most Popular Radio"))
 
-  dir.Append(Function(DirectoryItem(AddTVChannels, title = "TV Channels")))
-  dir.Append(Function(DirectoryItem(AddRadioStations, title = "Radio Stations")))
+  oc.add(DirectoryObject(key = Callback(AddTVChannels, title = "TV Channels"), title = "TV Channels"))
+  oc.add(DirectoryObject(key = Callback(AddRadioStations, title = "Radio Stations"), title = "Radio Stations"))
 
-  dir.Append(Function(DirectoryItem(AddCategories, title = "Categories")))
-  dir.Append(Function(DirectoryItem(AddFormats, title = "Formats")))
+  oc.add(DirectoryObject(key = Callback(AddCategories, title = "Categories"), title = "Categories"))
+  oc.add(DirectoryObject(key = Callback(AddFormats, title = "Formats"), title = "Formats"))
 
-  dir.Append(Function(DirectoryItem(AddAToZ, title = "A to Z")))
+  oc.add(DirectoryObject(key = Callback(AddAToZ, title = "A to Z"), title = "A to Z"))
 
-  dir.Append(Function(InputDirectoryItem(Search, title="Search TV", prompt="Search for TV Programmes", thumb=R(ICON_SEARCH)), search_url = BBC_SEARCH_TV_URL))
-  dir.Append(Function(InputDirectoryItem(Search, title="Search Radio", prompt="Search for Radio Programmes", thumb=R(ICON_SEARCH)), search_url = BBC_SEARCH_RADIO_URL))
+  oc.add(InputDirectoryObject(key = Callback(Search, title = "Search TV", prompt = "Search for TV Programmes", search_url = BBC_SEARCH_TV_URL), title = "Search TV"))
+  oc.add(InputDirectoryObject(key = Callback(Search, title = "Search Radio", prompt = "Search for Radio Programmes", search_url = BBC_SEARCH_RADIO_URL), title = "Search Radio"))
 
-  dir.Append(PrefsItem(title="Preferences", thumb=R(ICON_PREFS)))
+  oc.add(PrefsObject(title = "Preferences"))
 
-  return dir
-
-####################################################################################################
-
-def AddTVChannels(sender, query = None):
-
-  dir = MediaContainer(title1 = sender.title2, title2 = sender.itemTitle, viewGroup = "Info")
-
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC One", subtitle = sender.itemTitle, summary = L("summary-bbc_one"), thumb = BBC_TV_CHANNEL_THUMB_URL % "bbc_one"), type = "tv", rss_channel_id = "bbc_one", json_channel_id = "bbcone", json_region_id = "london", live_id = "bbc_one_london"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Two", subtitle = sender.itemTitle, summary = L("summary-bbc_two"), thumb = BBC_TV_CHANNEL_THUMB_URL % "bbc_two"), type = "tv", rss_channel_id = "bbc_two", json_channel_id = "bbctwo", json_region_id = "england", live_id = "bbc_two_england"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Three", subtitle = sender.itemTitle, summary = L("summary-bbc_three"), thumb = BBC_TV_CHANNEL_THUMB_URL % "bbc_three"), type = "tv", rss_channel_id = "bbc_three", json_channel_id = "bbcthree", live_id = "bbc_three"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Four", subtitle = sender.itemTitle, summary = L("summary-bbc_four"), thumb = BBC_TV_CHANNEL_THUMB_URL % "bbc_four"), type = "tv", rss_channel_id = "bbc_four", json_channel_id = "bbcfour", live_id = "bbc_four"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "CBBC", subtitle = sender.itemTitle, summary = L("summary-cbbc"), thumb = BBC_TV_CHANNEL_THUMB_URL % "cbbc"), type = "tv", rss_channel_id = "cbbc", json_channel_id = "cbbc", live_id = "cbbc"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "CBeebies", subtitle = sender.itemTitle, summary = L("summary-cbeebies"), thumb = BBC_TV_CHANNEL_THUMB_URL % "cbeebies_1"), type = "tv", rss_channel_id = "cbeebies", thumb_id = "cbeebies_1", json_channel_id = "cbeebies", live_id = "cbeebies"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC News Channel", subtitle = sender.itemTitle, summary = L("summary-bbc_news24"), thumb = BBC_TV_CHANNEL_THUMB_URL % "bbc_news24"), type = "tv", rss_channel_id = "bbc_news24", json_channel_id = "bbcnews", live_id = "bbc_news24"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Parliament", subtitle = sender.itemTitle, summary = L("summary-bbc_parliament"), thumb = BBC_TV_CHANNEL_THUMB_URL % "bbc_parliament_1"), type = "tv", rss_channel_id = "bbc_parliament", thumb_id = "bbc_parliament_1", json_channel_id = "parliament", live_id = "bbc_parliament"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC HD", subtitle = sender.itemTitle, thumb = BBC_TV_CHANNEL_THUMB_URL % "bbc_hd_1"), type = "tv", rss_channel_id = "bbc_hd", thumb_id = "bbc_hd_1", json_channel_id = "bbchd", thumb_url = BBC_HD_THUMB_URL, player_url = BBC_HD_PLAYER_URL))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Alba", subtitle = sender.itemTitle, thumb = BBC_TV_CHANNEL_THUMB_URL % "bbc_alba"), type = "tv", rss_channel_id = "bbc_alba", json_channel_id = "bbcalba", live_id = "bbc_alba"))
-
-  return dir
+  return oc
 
 ####################################################################################################
 
-def AddRadioStations(sender, query = None):
+def AddTVChannels(title):
 
-  dir = MediaContainer(title1 = sender.title2, title2 = sender.itemTitle, viewGroup = "Info")
+  oc = ObjectContainer(title2 = title)
 
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Radio 1", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_radio_one"), type = "radio", rss_channel_id = "bbc_radio_one", json_channel_id = "radio1", json_region_id = "england", live_id = "bbc_radio_one"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC 1Xtra", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_1xtra"), type = "radio", rss_channel_id = "bbc_1xtra", json_channel_id = "1xtra", live_id = "bbc_1xtra"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Radio 2", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_radio_two"), type = "radio", rss_channel_id = "bbc_radio_two", json_channel_id = "radio2", live_id = "bbc_radio_two"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Radio 3", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_radio_three"), type = "radio", rss_channel_id = "bbc_radio_three", json_channel_id = "radio3", live_id = "bbc_radio_three"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Radio 4 FM", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_radio_four"), type = "radio", rss_channel_id = "bbc_radio_four", json_channel_id = "radio4", json_region_id = "fm", live_id = "bbc_radio_fourfm"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Radio 4 LW", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_radio_four"), type = "radio", rss_channel_id = "bbc_radio_four", json_channel_id = "radio4", json_region_id = "lw", live_id = "bbc_radio_fourlw"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Radio 4 Extra", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_radio_four"), type = "radio", rss_channel_id = "bbc_radio_four_extra", thumb_id = "bbc_radio_four", json_channel_id = "radio4extra", live_id = "bbc_radio_four_extra"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Radio 5 live", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_radio_five_live"), type = "radio", rss_channel_id = "bbc_radio_five_live", json_channel_id = "5live", live_id = "bbc_radio_five_live"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Radio 5 live sports extra", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_radio_five_live_sports_extra"), type = "radio", rss_channel_id = "bbc_radio_five_live_sports_extra", json_channel_id = "5livesportsextra", live_id = "bbc_radio_five_live_sports_extra"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC 6 Music", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_6music"), type = "radio", rss_channel_id = "bbc_6music", json_channel_id = "6music", live_id = "bbc_6music"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC Asian Network", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_asian_network"), type = "radio", rss_channel_id = "bbc_asian_network", json_channel_id = "asiannetwork", live_id = "bbc_asian_network"))
-  dir.Append(Function(DirectoryItem(ChannelContainer, title = "BBC World Service", subtitle = sender.itemTitle, thumb = BBC_RADIO_CHANNEL_THUMB_URL % "bbc_world_service"), type = "radio", rss_channel_id = "bbc_world_service", json_channel_id = "worldservice", live_id = "bbc_world_service"))
+  #           (title,               summary,                     thumb,              type, rss_channel_id,    thumb_id,          channel_id,  region_id, live_id,           thumb_url,        player_url)
+  channels = [('BBC One',           L("summary-bbc_one"),        'bbc_one',          'tv', 'bbc_one',         None,              'bbcone',    'london',  'bbc_one_london',  None,             None),
+              ('BBC Two',           L("summary-bbc_two"),        'bbc_two',          'tv', 'bbc_two',         None,              'bbctwo',    'england', 'bbc_two_england', None,             None),
+              ('BBC Three',         L("summary-bbc_three"),      'bbc_three',        'tv', 'bbc_three',       None,              'bbcthree',   None,     'bbc_three',       None,             None),
+              ('BBC Four',          L("summary-bbc_four"),       'bbc_four',         'tv', 'bbc_four',        None,              'bbcfour',    None,     'bbc_four',        None,             None),
+              ('CBBC',              L("summary-cbbc"),           'cbbc',             'tv', 'cbbc',            None,              'cbbc',       None,     'cbbc',            None,             None),
+              ('CBeebies',          L("summary-cbeebies"),       'cbeebies_1',       'tv', 'cbeebies',       'cbeebies_1',       'cbeebies',   None,     'cbeebies',        None,             None),
+              ('BBC News Channel',  L("summary-bbc_news24"),     'bbc_news24',       'tv', 'bbc_news24',      None,              'bbc_news24', None,     'bbc_news24',      None,             None),
+              ('BBC Parliament',    L("summary-bbc_parliament"), 'bbc_parliament_1', 'tv', 'bbc_parliament', 'bbc_parliament_1', 'parliament', None,     'bbc_parliament',  None,             None),
+              ('BBC HD',            None,                        'bbc_hd_1',         'tv', 'bbc_hd',         'bbc_hd_1',         'bbchd',      None,     None,              BBC_HD_THUMB_URL, BBC_HD_PLAYER_URL),
+              ('BBC Alba',          None,                        'bbc_alba',         'tv', 'bbc_alba',       'bbcalba',          'bbc_alba',   None,     'bbc_alba',        None,             None)]
 
-  return dir
+  for (title, summary, thumb, type, rss_channel_id, json_channel_id, json_region_id, live_id, thumb_url, player_url) in channels:
+    oc.add(DirectoryObject(
+      key = Callback(ChannelContainer, title = title, type = type, rss_channel_id = rss_channel_id, json_channel_id = json_channel_id, json_region_id = json_region_id, live_id = live_id, thumb_url = thumb_url, player_url = player_url),
+      title = title,
+      summary = summary,
+      thumb = BBC_TV_CHANNEL_THUMB_URL % thumb))
+
+  return oc
+
+####################################################################################################
+
+def AddRadioStations(title):
+
+  oc = ObjectContainer(title2 = title)
+
+  #           (title,                           thumb,                              type,    ss_channel_id,                      thumb_id,         channel_id,         region_id, live_id)
+  stations = [('BBC Radio 1',                   'bbc_radio_one',                    'radio', 'bbc_one',                          None,             'radio1',           'england', 'bbc_radio_one'),
+              ('BBC 1Xtra',                     'bbc_1xtra',                        'radio', 'bbc_1xtra',                        None,             '1xtra',            None,      'bbc_1xtra'),
+              ('BBC Radio 2',                   'bbc_radio_two',                    'radio', 'bbc_radio_two',                    None,             'radio2',           None,      'bbc_radio_two'),
+              ('BBC Radio 3',                   'bbc_radio_three',                  'radio', 'bbc_radio_three',                  None,             'radio3',           None,      'bbc_radio_three'),
+              ('BBC Radio 4 FM',                'bbc_radio_four',                   'radio', 'bbc_radio_four',                   None,             'radio4',           'fm',      'bbc_radio_fourfm'),
+              ('BBC Radio 4 LW',                'bbc_radio_four',                   'radio', 'bbc_radio_four',                   None,             'radio4',           'lw',      'bbc_radio_fourlw'),
+              ('BBC Radio 4 Extra',             'bbc_radio_four',                   'radio', 'bbc_radio_four_extra',             'bbc_radio_four', 'radio4extra',      None,      'bbc_radio_four_extra'),
+              ('BBC Radio 5 live',              'bbc_radio_five_live',              'radio', 'bbc_radio_five_live',              None,             '5live',            None,      'bbc_radio_five_live'),
+              ('BBC Radio 5 live sports extra', 'bbc_radio_five_live_sports_extra', 'radio', 'bbc_radio_five_live_sports_extra', None,             '5livesportsextra', None,      'bbc_radio_five_live_sports_extra'),
+              ('BBC 6 Music',                   'bbc_6music',                       'radio', 'bbc_6music',                       None,             '6music',           None,      'bbc_6music'),
+              ('BBC Asian Network',             'bbc_asian_network',                'radio', 'bbc_asian_network',                None,             'asiannetwork',     None,      'bbc_asian_network'),
+              ('BBC World Service',             'bbc_world_service',                'radio', 'bbc_world_service',                None,             'worldservice',     None,      'bbc_world_service')]
+
+  for (title, thumb, type, rss_channel_id, json_channel_id, json_region_id, live_id) in stations:
+    oc.add(DirectoryObject(
+      key = Callback(ChannelContainer, title = title, type = type, rss_channel_id = rss_channel_id, json_channel_id = json_channel_id, json_region_id = json_region_id, live_id = live_id),
+      title = title,
+      summary = summary,
+      thumb = BBC_RADIO_CHANNEL_THUMB_URL % thumb))
+
+  return oc
 
 ####################################################################################################
 
@@ -261,9 +287,9 @@ def MonthName(inDate):
 
 ####################################################################################################
 
-def ChannelContainer(sender, query = None, type = "None", rss_channel_id = None, json_channel_id = None, json_region_id = None, live_id = None, thumb_id = None, thumb_url = BBC_SD_THUMB_URL, player_url = BBC_SD_PLAYER_URL % Prefs['sd_video_quality']):
+def ChannelContainer(title, query = None, type = "None", rss_channel_id = None, json_channel_id = None, json_region_id = None, live_id = None, thumb_id = None, thumb_url = BBC_SD_THUMB_URL, player_url = BBC_SD_PLAYER_URL % Prefs['sd_video_quality']):
 
-  dir = MediaContainer(title1 = sender.title2, title2 = sender.itemTitle, viewGroup = "Info")
+  oc = ObjectContainer(title2 = title)
 
   if type == "tv":
     if thumb_id == None:
@@ -278,7 +304,7 @@ def ChannelContainer(sender, query = None, type = "None", rss_channel_id = None,
 
   if live_id != None:
     if type == "tv":
-      dir.Append(WebVideoItem(url = BBC_LIVE_TV_URL % (live_id, Prefs['sd_video_quality']), title = "On Now", subtitle = sender.itemTitle, thumb = thumb, duration = 0))
+      oc.add(VideoClipObject(url = BBC_LIVE_TV_URL % live_id, title = "On Now", thumb = thumb))
     else:
       dir.Append(WebVideoItem(url = BBC_LIVE_RADIO_URL % live_id, title = "On Now", subtitle = sender.itemTitle, thumb = thumb, duration = 0))
 
