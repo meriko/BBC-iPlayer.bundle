@@ -170,7 +170,7 @@ def AddAToZ(sender, query = None):
 
 ####################################################################################################
 
-def Search(sender, query, search_url = BBC_SEARCH_URL, page_num = 1):
+def Search(sender, query = 'dog', search_url = BBC_SEARCH_URL, page_num = 1):
 
   dir = None
 
