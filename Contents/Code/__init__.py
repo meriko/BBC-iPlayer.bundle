@@ -7,7 +7,7 @@ TITLE                         = "BBC iPlayer"
 
 BBC_URL                       = "http://www.bbc.co.uk"
 BBC_FEED_URL                  = "http://feeds.bbc.co.uk"
-BBC_SD_PLAYER_URL             = "%s/iplayer/episode/%%%%s" % BBC_URL
+BBC_SD_PLAYER_URL             = "%s/iplayer/episode/%%s" % BBC_URL
 BBC_HD_PLAYER_URL             = "%s/iplayer/episode/%%s/hd" % BBC_URL
 BBC_LIVE_TV_URL               = "%s/iplayer/tv/%%s/watchlive" % BBC_URL
 BBC_LIVE_RADIO_URL            = "%s/iplayer/radio/%%s/listenlive" % BBC_URL
@@ -180,7 +180,7 @@ def AddFormats(title, query = None, channel_name = None, channel_id = None, thum
              ('Phone-ins',             'phoneins'),
              ('Readings',              'readings'),
              ('Reality',               'reality'),
-             ('Talent Shows',          'talentshows'),
+             ('Talent Shows',          'talentshows')]
 
   for (title, format_id) in formats:
     oc.add(DirectoryObject(
