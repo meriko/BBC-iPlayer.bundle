@@ -65,51 +65,29 @@ def HighlightsContainer():
 
 def RSSListContainer(title="", query=None, url=None, subtitle=None, sort_list=None, thumb_url=BBC_SD_THUMB_URL, player_url=BBC_SD_PLAYER_URL % Prefs['sd_video_quality']):
     # this function generates the highlights, most popular and sub-category lists from an RSS feed
-    Log.Debug(url)
     feed = RSS.FeedFromString(url)
     if feed is None: return
 
-
-    dir = MediaContainer(title=title, viewGroup="Info")
+    oc = ObjectContainer()
 
     for entry in feed.entries:
-        # the URL chunk to use as the program's UID is different for HD programs
-        # default to using the 2nd-to-last chunk
         thumb = thumb_url % entry["link"].split("/")[-3]
-        if thumb_url == BBC_HD_THUMB_URL:
-            # ...unless it's an HD URL, in which case use the 3rd-to-last chunk
-            thumb = thumb_url % entry["link"].split("/")[-4]
-
         parts = entry["title"].split(": ")
 
+        # This seems to strip out the year on some TV series
         if len(parts) == 3:
             title = "%s: %s" % (parts[0], parts[2])
         else:
             title = entry["title"]
-          
-        if subtitle == None:
-            # find out if this is a tv or radio show
-            thisSubtitle = "TV"
-            for category in entry.categories:
-                if category[1] == "Radio":
-                    thisSubtitle = "Radio"
-        else:
-            thisSubtitle = subtitle
 
         content = HTML.ElementFromString(entry["content"][0].value)
         summary = content.xpath("p")[1].text.strip()
-        
-         # Only append quality setting if non-HD stream otherwise HD site config won't get picked.
-        thisUrl = entry["link"]
-        if (player_url != BBC_HD_PLAYER_URL):
-            thisUrl += "#" + Prefs['sd_video_quality']
-            
-        dir.Append(WebVideoItem(url = thisUrl, title = title, subtitle = thisSubtitle, summary = summary, duration = 0, thumb = thumb))
-    
-    if sort_list == "alpha":
-        dir.Sort("title")
+        oc.add(EpisodeObject(url=entry["link"], title=title, summary=summary, thumb=thumb))
 
-    if len(dir) == 0:
+    if sort_list == "alpha":
+        oc.Sort("title")
+
+    if len(oc) == 0:
         return MessageContainer(header = title, message = "No programmes found.")
 
-    return dir
+    return oc
