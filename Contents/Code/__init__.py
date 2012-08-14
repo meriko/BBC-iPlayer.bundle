@@ -52,26 +52,48 @@ def Start():
 
 def MainMenu():
     oc = ObjectContainer()
-    oc.add(DirectoryObject(key = Callback(HighlightsContainer), title = "TV Highlights"))
+    oc.add(DirectoryObject(key = Callback(TVHighlights), title = "TV Highlights"))
+    oc.add(DirectoryObject(key = Callback(RadioHighlights), title = "Radio Highlights"))
+    oc.add(DirectoryObject(key = Callback(PopularTV), title = "Most Popular TV"))
+    oc.add(DirectoryObject(key = Callback(PopularRadio), title = "Most Popular Radio"))
 
     return oc
 
 
-@route("/video/iplayer/highlights")
-def HighlightsContainer():
-    url = BBC_FEED_URL + "/iplayer/highlights/tv" # is there a url.join?
+@route("/video/iplayer/tv/highlights")
+def TVHighlights():
+    url = BBC_FEED_URL + "/iplayer/highlights/tv" 
     return RSSListContainer(title="TV Highlights", url=url)
 
 
-def RSSListContainer(title="", query=None, url=None, subtitle=None, sort_list=None, thumb_url=BBC_SD_THUMB_URL, player_url=BBC_SD_PLAYER_URL % Prefs['sd_video_quality']):
-    # this function generates the highlights, most popular and sub-category lists from an RSS feed
+@route("/video/iplayer/radio/highlights")
+def RadioHighlights():
+    url = BBC_FEED_URL + "/iplayer/highlights/radio"
+    return RSSListContainer(title="Radio Highlights", url=url)
+
+
+@route("/video/iplayer/tv/popular")
+def PopularTV():
+    url = BBC_FEED_URL + "/iplayer/popular/tv"
+    return RSSListContainer(title="Most Popular TV", url=url)
+
+
+@route("/video/iplayer/radio/popular")
+def PopularRadio():
+    url = BBC_FEED_URL + "/iplayer/popular/radio"
+    return RSSListContainer(title="Most Popular Radio", url=url)
+
+
+def RSSListContainer(title="", url=None):
+    thumb_url = "http://node2.bbcimg.co.uk/iplayer/images/episode/%s_640_360.jpg"
+
     feed = RSS.FeedFromString(url)
     if feed is None: return
 
     oc = ObjectContainer()
 
     for entry in feed.entries:
-        thumb = thumb_url % entry["link"].split("/")[-3]
+        thumb = bbc_thumb_url % entry["link"].split("/")[-3]
         parts = entry["title"].split(": ")
 
         # This seems to strip out the year on some TV series
@@ -83,9 +105,6 @@ def RSSListContainer(title="", query=None, url=None, subtitle=None, sort_list=No
         content = HTML.ElementFromString(entry["content"][0].value)
         summary = content.xpath("p")[1].text.strip()
         oc.add(EpisodeObject(url=entry["link"], title=title, summary=summary, thumb=thumb))
-
-    if sort_list == "alpha":
-        oc.Sort("title")
 
     if len(oc) == 0:
         return MessageContainer(header = title, message = "No programmes found.")
