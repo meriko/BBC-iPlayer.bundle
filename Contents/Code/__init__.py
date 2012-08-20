@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 import math, re
+import content
+import config
 
 TITLE                         = "BBC iPlayer"
 
@@ -57,6 +59,8 @@ def MainMenu():
     oc.add(DirectoryObject(key = Callback(PopularTV), title = "Most Popular TV"))
     oc.add(DirectoryObject(key = Callback(PopularRadio), title = "Most Popular Radio"))
 
+    oc.add(DirectoryObject(key = Callback(TVChannels), title = "TV Channels"))
+
     return oc
 
 
@@ -64,6 +68,12 @@ def MainMenu():
 def TVHighlights():
     url = BBC_FEED_URL + "/iplayer/highlights/tv" 
     return RSSListContainer(title="TV Highlights", url=url)
+
+
+@route("/video/iplayer/tv/highlights/{channel_id}")
+def TVChannelHighlights(channel_id):
+    url = "%s/iplayer/%s/highlights" % (BBC_FEED_URL, channel_id)
+    return RSSListContainer(title="Highlights", url=url)
 
 
 @route("/video/iplayer/radio/highlights")
@@ -78,11 +88,71 @@ def PopularTV():
     return RSSListContainer(title="Most Popular TV", url=url)
 
 
+@route("/video/iplayer/tv/popular/{channel_id}")
+def TVChannelHighlights(channel_id):
+    url = "%s/iplayer/%s/popular" % (BBC_FEED_URL, channel_id)
+    return RSSListContainer(title="Most Popular", url=url)
+
+
 @route("/video/iplayer/radio/popular")
 def PopularRadio():
     url = BBC_FEED_URL + "/iplayer/popular/radio"
     return RSSListContainer(title="Most Popular Radio", url=url)
 
+
+@route("/video/iplayer/tv/channels")
+def TVChannels():
+    oc = ObjectContainer(title2="TV Channels")
+    for (channel_id, channel) in content.tv_channels.items():
+        oc.add(DirectoryObject(key='/video/iplayer/tv/channels/%s' % channel_id, title=channel.title))
+    return oc
+
+@route("/video/iplayer/tv/channels/{channel_id}")
+def TVChannel(channel_id):
+    channel = content.tv_channels[channel_id]
+    oc = ObjectContainer(title1=channel.title)
+
+    # FIXME: TVChannel, LiveChannel, RadioChannel with some VideoObject
+    if channel.type == "tv":
+        if channel.thumb_id == None:
+            thumb = BBC_TV_CHANNEL_THUMB_URL % channel.rss_channel_id
+        else:
+            thumb = BBC_TV_CHANNEL_THUMB_URL % channel.thumb_id
+    else:
+        if channel.thumb_id == None:
+            thumb = BBC_RADIO_CHANNEL_THUMB_URL % channel.rss_channel_id
+        else:
+            thumb = BBC_RADIO_CHANNEL_THUMB_URL % channel.thumb_id
+
+    # No URL service found for http://www.bbc.co.uk/iplayer/tv/bbc_two_england/watchlive
+    #if channel.live_id != None:
+    #    if channel.type == "tv":
+    #        oc.add(VideoClipObject(url = BBC_LIVE_TV_URL % channel.live_id, title = "On Now", thumb = thumb))
+    #    else:
+    #        oc.add(VideoClipObject(url = BBC_LIVE_RADIO_URL % channel.live_id, title = "On Now", thumb = thumb))
+
+    # FIXME: if channel has highlights
+    if channel.rss_channel_id != None:
+        oc.add(DirectoryObject(key="/video/iplayer/tv/highlights/%s" % channel_id, title="Highlights"))
+        oc.add(DirectoryObject(key="/video/iplayer/tv/popular/%s" % channel_id, title="Most Popular"))
+
+
+#  if json_channel_id != None:
+#    if json_region_id != None:
+#      json_region_id_path = json_region_id + "/"
+#    else:
+#      json_region_id_path = ""
+#    dir.Append(Function(DirectoryItem(AddCategories, title = "Categories", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
+#    dir.Append(Function(DirectoryItem(JSONScheduleListContainer, title = "Today", subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%stoday.json" % (json_channel_id, json_region_id_path), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
+#    dir.Append(Function(DirectoryItem(JSONScheduleListContainer, title = "Yesterday", subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%syesterday.json" % (json_channel_id, json_region_id_path), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
+#    now = datetime.today()
+#    oneDay = timedelta(days = 1)
+#    for i in range (2, 7):
+#      thisDate = now - (i * oneDay)
+#      dir.Append(Function(DirectoryItem(JSONScheduleListContainer, WeekdayName(thisDate) + " " + str(thisDate.day) + " " + MonthName(thisDate), subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%s%s/%s/%s.json" % (json_channel_id, json_region_id_path, thisDate.year, thisDate.month, thisDate.day), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
+#    dir.Append(Function(DirectoryItem(AddFormats, title = "Formats", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
+
+    return oc
 
 def RSSListContainer(title="", url=None):
     thumb_url = "http://node2.bbcimg.co.uk/iplayer/images/episode/%s_640_360.jpg"
@@ -93,7 +163,7 @@ def RSSListContainer(title="", url=None):
     oc = ObjectContainer()
 
     for entry in feed.entries:
-        thumb = bbc_thumb_url % entry["link"].split("/")[-3]
+        thumb = config.BBC_HD_THUMB_URL % entry["link"].split("/")[-3]
         parts = entry["title"].split(": ")
 
         # This seems to strip out the year on some TV series
