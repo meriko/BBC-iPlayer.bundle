@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import math, re
 import content
 import config
+import times
 
 TITLE                         = "BBC iPlayer"
 
@@ -107,6 +108,14 @@ def TVChannels():
         oc.add(DirectoryObject(key='/video/iplayer/tv/channels/%s' % channel_id, title=channel.title))
     return oc
 
+@route("/video/iplayer/tv/{channel_id}/schedule/today")
+def TVScheduleToday(channel_id):
+    channel = content.tv_channels[channel_id]
+    url = channel.schedule_url + "today.json"
+    Log.Debug(url)
+    return JSONScheduleListContainer(url=url) 
+
+# FIXME: tv/{channel_id}
 @route("/video/iplayer/tv/channels/{channel_id}")
 def TVChannel(channel_id):
     channel = content.tv_channels[channel_id]
@@ -133,24 +142,19 @@ def TVChannel(channel_id):
 
     # FIXME: if channel has highlights
     if channel.rss_channel_id != None:
+        # FIXME: tv/channel/highlights instead
         oc.add(DirectoryObject(key="/video/iplayer/tv/highlights/%s" % channel_id, title="Highlights"))
         oc.add(DirectoryObject(key="/video/iplayer/tv/popular/%s" % channel_id, title="Most Popular"))
 
-
-#  if json_channel_id != None:
-#    if json_region_id != None:
-#      json_region_id_path = json_region_id + "/"
-#    else:
-#      json_region_id_path = ""
-#    dir.Append(Function(DirectoryItem(AddCategories, title = "Categories", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
-#    dir.Append(Function(DirectoryItem(JSONScheduleListContainer, title = "Today", subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%stoday.json" % (json_channel_id, json_region_id_path), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
-#    dir.Append(Function(DirectoryItem(JSONScheduleListContainer, title = "Yesterday", subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%syesterday.json" % (json_channel_id, json_region_id_path), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
-#    now = datetime.today()
-#    oneDay = timedelta(days = 1)
-#    for i in range (2, 7):
-#      thisDate = now - (i * oneDay)
-#      dir.Append(Function(DirectoryItem(JSONScheduleListContainer, WeekdayName(thisDate) + " " + str(thisDate.day) + " " + MonthName(thisDate), subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%s%s/%s/%s.json" % (json_channel_id, json_region_id_path, thisDate.year, thisDate.month, thisDate.day), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
-#    dir.Append(Function(DirectoryItem(AddFormats, title = "Formats", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
+    #dir.Append(Function(DirectoryItem(AddCategories, title = "Categories", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
+    oc.add(DirectoryObject(key="/video/iplayer/tv/%s/schedule/today" % channel_id, title="Today"))
+    #dir.Append(Function(DirectoryItem(JSONScheduleListContainer, title = "Yesterday", subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%syesterday.json" % (json_channel_id, json_region_id_path), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
+    #now = datetime.today()
+    #oneDay = timedelta(days = 1)
+    #for i in range (2, 7):
+    #    thisDate = now - (i * oneDay)
+    #    dir.Append(Function(DirectoryItem(JSONScheduleListContainer, WeekdayName(thisDate) + " " + str(thisDate.day) + " " + MonthName(thisDate), subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%s%s/%s/%s.json" % (json_channel_id, json_region_id_path, thisDate.year, thisDate.month, thisDate.day), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
+    #dir.Append(Function(DirectoryItem(AddFormats, title = "Formats", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
 
     return oc
 
@@ -163,7 +167,7 @@ def RSSListContainer(title="", url=None):
     oc = ObjectContainer()
 
     for entry in feed.entries:
-        thumb = config.BBC_HD_THUMB_URL % entry["link"].split("/")[-3]
+        thumb = thumb_url % entry["link"].split("/")[-3]
         parts = entry["title"].split(": ")
 
         # This seems to strip out the year on some TV series
@@ -179,4 +183,48 @@ def RSSListContainer(title="", url=None):
     if len(oc) == 0:
         return MessageContainer(header = title, message = "No programmes found.")
 
+    return oc
+
+def JSONScheduleListContainer(url = None):
+    # this function generates the schedule lists for today / yesterday etc. from a JSON feed
+
+    jsonObj = JSON.ObjectFromURL(url)
+    if jsonObj is None: return
+  
+    oc = ObjectContainer()
+
+    day = jsonObj["schedule"]["day"]
+  
+    for broadcast in day["broadcasts"]:
+        start = broadcast["start"][11:16]
+        duration = broadcast["duration"] * 1000 # in milliseconds
+        thisProgramme = broadcast["programme"]
+        displayTitles = thisProgramme["display_titles"]
+        title = displayTitles["title"]
+        foundSubtitle = displayTitles["subtitle"]
+        pid = thisProgramme["pid"]
+        short_synopsis = thisProgramme["short_synopsis"] + "\n\n" + "Duration: " + times.DurationAsString(duration)
+      
+        # assume unavailable unless we can find an expiry date of after now
+        available = 0
+        nowDate = 0
+        expiryDate = 0
+        if thisProgramme.has_key("media"):
+            media = thisProgramme["media"]
+            if media.has_key("expires"):
+                nowDate = datetime.now()
+                available = 1
+                if media["expires"] == None:
+                    # use an expiry date in the distant future
+                    expiryDate = nowDate + timedelta(days = 1000)
+                else:
+                    # FIXME: this should be GMT and pytz, but to compare dates we need
+                    # to have both dates to be offset naive, or aware
+                    expiryDate = Datetime.ParseDate(media["expires"]).replace(tzinfo=None)
+
+
+        if available == 1 and expiryDate > nowDate:
+            player_url = config.BBC_HD_PLAYER_URL
+            thumb_url = config.BBC_HD_THUMB_URL
+            oc.add(EpisodeObject(url=player_url % pid, title = "%s %s" % (start, title), summary = short_synopsis, duration = duration, thumb = thumb_url % pid))
     return oc
