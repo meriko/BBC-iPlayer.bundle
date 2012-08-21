@@ -18,3 +18,5 @@ def DurationAsString(duration):
         return str(hours) + " hours"
     else:
         return str(hours) + " hours " + str(minutes) + " minutes"
+
+days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]

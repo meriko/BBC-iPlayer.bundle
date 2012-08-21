@@ -108,12 +108,19 @@ def TVChannels():
         oc.add(DirectoryObject(key='/video/iplayer/tv/channels/%s' % channel_id, title=channel.title))
     return oc
 
-@route("/video/iplayer/tv/{channel_id}/schedule/today")
-def TVScheduleToday(channel_id):
+@route("/video/iplayer/tv/{channel_id}/schedule/{year}/{month}/{day}")
+def TVSchedule(channel_id, year, month, day):
     channel = content.tv_channels[channel_id]
-    url = channel.schedule_url + "today.json"
-    Log.Debug(url)
+    url = "%s/%s/%s/%s.json" % (channel.schedule_url, year, month, day)
     return JSONScheduleListContainer(url=url) 
+
+
+@route("/video/iplayer/tv/{channel_id}/schedule/{for_when}")
+def TVScheduleToday(channel_id, for_when):
+    channel = content.tv_channels[channel_id]
+    url = channel.schedule_url + for_when + ".json"
+    return JSONScheduleListContainer(url=url) 
+
 
 # FIXME: tv/{channel_id}
 @route("/video/iplayer/tv/channels/{channel_id}")
@@ -147,13 +154,17 @@ def TVChannel(channel_id):
         oc.add(DirectoryObject(key="/video/iplayer/tv/popular/%s" % channel_id, title="Most Popular"))
 
     #dir.Append(Function(DirectoryItem(AddCategories, title = "Categories", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
+
+    # Add the last week's worth of schedules
     oc.add(DirectoryObject(key="/video/iplayer/tv/%s/schedule/today" % channel_id, title="Today"))
-    #dir.Append(Function(DirectoryItem(JSONScheduleListContainer, title = "Yesterday", subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%syesterday.json" % (json_channel_id, json_region_id_path), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
-    #now = datetime.today()
-    #oneDay = timedelta(days = 1)
-    #for i in range (2, 7):
-    #    thisDate = now - (i * oneDay)
-    #    dir.Append(Function(DirectoryItem(JSONScheduleListContainer, WeekdayName(thisDate) + " " + str(thisDate.day) + " " + MonthName(thisDate), subtitle = sender.itemTitle, thumb = thumb), url = "http://www.bbc.co.uk/%s/programmes/schedules/%s%s/%s/%s.json" % (json_channel_id, json_region_id_path, thisDate.year, thisDate.month, thisDate.day), subtitle = sender.itemTitle, thumb_url = thumb_url, player_url = player_url))
+    oc.add(DirectoryObject(key="/video/iplayer/tv/%s/schedule/yesterday" % channel_id, title="Yesterday"))
+    now = datetime.today()
+    for i in range (2, 7):
+        date = now - timedelta(days=i)
+        for_when = date.strftime("%Y/%m/%d")
+        url = "/video/iplayer/tv/%s/schedule/%s" % (channel_id, for_when)
+        oc.add(DirectoryObject(key=url, title=times.days[date.weekday()]))
+
     #dir.Append(Function(DirectoryItem(AddFormats, title = "Formats", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
 
     return oc
