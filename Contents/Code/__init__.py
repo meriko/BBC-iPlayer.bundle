@@ -55,12 +55,14 @@ def Start():
 
 def MainMenu():
     oc = ObjectContainer()
-    oc.add(DirectoryObject(key = Callback(TVHighlights), title = "TV Highlights"))
-    oc.add(DirectoryObject(key = Callback(RadioHighlights), title = "Radio Highlights"))
-    oc.add(DirectoryObject(key = Callback(PopularTV), title = "Most Popular TV"))
-    oc.add(DirectoryObject(key = Callback(PopularRadio), title = "Most Popular Radio"))
+    oc.add(DirectoryObject(key=Callback(TVHighlights), title="TV Highlights"))
+    oc.add(DirectoryObject(key=Callback(RadioHighlights), title="Radio Highlights"))
+    oc.add(DirectoryObject(key=Callback(PopularTV), title="Most Popular TV"))
+    oc.add(DirectoryObject(key=Callback(PopularRadio), title="Most Popular Radio"))
 
-    oc.add(DirectoryObject(key = Callback(TVChannels), title = "TV Channels"))
+    oc.add(DirectoryObject(key=Callback(TVChannels), title="TV Channels"))
+
+    #oc.add(DirectoryObject(key = Callback(AddCategories, title = "Categories"), title = "Categories"))
 
     return oc
 
@@ -90,7 +92,7 @@ def PopularTV():
 
 
 @route("/video/iplayer/tv/popular/{channel_id}")
-def TVChannelHighlights(channel_id):
+def TVChannelPopular(channel_id):
     url = "%s/iplayer/%s/popular" % (BBC_FEED_URL, channel_id)
     return RSSListContainer(title="Most Popular", url=url)
 
@@ -105,18 +107,19 @@ def PopularRadio():
 def TVChannels():
     oc = ObjectContainer(title2="TV Channels")
     for (channel_id, channel) in content.tv_channels.items():
-        oc.add(DirectoryObject(key='/video/iplayer/tv/channels/%s' % channel_id, title=channel.title))
+        oc.add(DirectoryObject(key=Callback(TVChannel, channel_id=channel_id), title=channel.title))
     return oc
 
+
 @route("/video/iplayer/tv/{channel_id}/schedule/{year}/{month}/{day}")
-def TVSchedule(channel_id, year, month, day):
+def TVScheduleForDay(channel_id, year, month, day):
     channel = content.tv_channels[channel_id]
     url = "%s/%s/%s/%s.json" % (channel.schedule_url, year, month, day)
     return JSONScheduleListContainer(url=url) 
 
 
 @route("/video/iplayer/tv/{channel_id}/schedule/{for_when}")
-def TVScheduleToday(channel_id, for_when):
+def TVSchedule(channel_id, for_when):
     channel = content.tv_channels[channel_id]
     url = channel.schedule_url + for_when + ".json"
     return JSONScheduleListContainer(url=url) 
@@ -150,20 +153,20 @@ def TVChannel(channel_id):
     # FIXME: if channel has highlights
     if channel.rss_channel_id != None:
         # FIXME: tv/channel/highlights instead
-        oc.add(DirectoryObject(key="/video/iplayer/tv/highlights/%s" % channel_id, title="Highlights"))
-        oc.add(DirectoryObject(key="/video/iplayer/tv/popular/%s" % channel_id, title="Most Popular"))
+        oc.add(DirectoryObject(key=Callback(TVChannelHighlights, channel_id=channel_id), title="Highlights"))
+        oc.add(DirectoryObject(key=Callback(TVChannelPopular, channel_id=channel_id), title="Most Popular"))
 
     #dir.Append(Function(DirectoryItem(AddCategories, title = "Categories", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
 
     # Add the last week's worth of schedules
-    oc.add(DirectoryObject(key="/video/iplayer/tv/%s/schedule/today" % channel_id, title="Today"))
-    oc.add(DirectoryObject(key="/video/iplayer/tv/%s/schedule/yesterday" % channel_id, title="Yesterday"))
+    oc.add(DirectoryObject(key=Callback(TVSchedule, for_when="today", channel_id=channel_id), title="Today"))
+    oc.add(DirectoryObject(key=Callback(TVSchedule, for_when="yesterday", channel_id=channel_id), title="Yesterday"))
     now = datetime.today()
     for i in range (2, 7):
         date = now - timedelta(days=i)
         for_when = date.strftime("%Y/%m/%d")
         url = "/video/iplayer/tv/%s/schedule/%s" % (channel_id, for_when)
-        oc.add(DirectoryObject(key=url, title=times.days[date.weekday()]))
+        oc.add(DirectoryObject(key=Callback(TVScheduleForDay, channel_id=channel_id, year=date.year, month=date.month, day=date.day), title=times.days[date.weekday()]))
 
     #dir.Append(Function(DirectoryItem(AddFormats, title = "Formats", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
 
@@ -192,20 +195,18 @@ def RSSListContainer(title="", url=None):
         oc.add(EpisodeObject(url=entry["link"], title=title, summary=summary, thumb=thumb))
 
     if len(oc) == 0:
-        return MessageContainer(header = title, message = "No programmes found.")
+        return MessageContainer(header=title, message="No programmes found.")
 
     return oc
 
 def JSONScheduleListContainer(url = None):
     # this function generates the schedule lists for today / yesterday etc. from a JSON feed
-
     jsonObj = JSON.ObjectFromURL(url)
     if jsonObj is None: return
   
     oc = ObjectContainer()
 
     day = jsonObj["schedule"]["day"]
-  
     for broadcast in day["broadcasts"]:
         start = broadcast["start"][11:16]
         duration = broadcast["duration"] * 1000 # in milliseconds
@@ -232,7 +233,6 @@ def JSONScheduleListContainer(url = None):
                     # FIXME: this should be GMT and pytz, but to compare dates we need
                     # to have both dates to be offset naive, or aware
                     expiryDate = Datetime.ParseDate(media["expires"]).replace(tzinfo=None)
-
 
         if available == 1 and expiryDate > nowDate:
             player_url = config.BBC_HD_PLAYER_URL
