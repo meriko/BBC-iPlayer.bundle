@@ -67,35 +67,11 @@ def MainMenu():
     return oc
 
 
-@route("/video/iplayer/tv/highlights")
-def TVHighlights():
-    url = BBC_FEED_URL + "/iplayer/highlights/tv" 
-    return RSSListContainer(title="TV Highlights", url=url)
-
-
-@route("/video/iplayer/tv/highlights/{channel_id}")
-def TVChannelHighlights(channel_id):
-    url = "%s/iplayer/%s/highlights" % (BBC_FEED_URL, channel_id)
-    return RSSListContainer(title="Highlights", url=url)
-
 
 @route("/video/iplayer/radio/highlights")
 def RadioHighlights():
     url = BBC_FEED_URL + "/iplayer/highlights/radio"
     return RSSListContainer(title="Radio Highlights", url=url)
-
-
-@route("/video/iplayer/tv/popular")
-def PopularTV():
-    url = BBC_FEED_URL + "/iplayer/popular/tv"
-    return RSSListContainer(title="Most Popular TV", url=url)
-
-
-@route("/video/iplayer/tv/popular/{channel_id}")
-def TVChannelPopular(channel_id):
-    url = "%s/iplayer/%s/popular" % (BBC_FEED_URL, channel_id)
-    return RSSListContainer(title="Most Popular", url=url)
-
 
 @route("/video/iplayer/radio/popular")
 def PopularRadio():
@@ -103,30 +79,24 @@ def PopularRadio():
     return RSSListContainer(title="Most Popular Radio", url=url)
 
 
-@route("/video/iplayer/tv/channels")
+@route("/video/iplayer/tv")
 def TVChannels():
     oc = ObjectContainer(title2="TV Channels")
     for (channel_id, channel) in content.tv_channels.items():
         oc.add(DirectoryObject(key=Callback(TVChannel, channel_id=channel_id), title=channel.title))
     return oc
 
+@route("/video/iplayer/tv/highlights")
+def TVHighlights():
+    url = BBC_FEED_URL + "/iplayer/highlights/tv" 
+    return RSSListContainer(title="TV Highlights", url=url)
 
-@route("/video/iplayer/tv/{channel_id}/schedule/{year}/{month}/{day}")
-def TVScheduleForDay(channel_id, year, month, day):
-    channel = content.tv_channels[channel_id]
-    url = "%s/%s/%s/%s.json" % (channel.schedule_url, year, month, day)
-    return JSONScheduleListContainer(url=url) 
+@route("/video/iplayer/tv/popular")
+def PopularTV():
+    url = BBC_FEED_URL + "/iplayer/popular/tv"
+    return RSSListContainer(title="Most Popular TV", url=url)
 
-
-@route("/video/iplayer/tv/{channel_id}/schedule/{for_when}")
-def TVSchedule(channel_id, for_when):
-    channel = content.tv_channels[channel_id]
-    url = channel.schedule_url + for_when + ".json"
-    return JSONScheduleListContainer(url=url) 
-
-
-# FIXME: tv/{channel_id}
-@route("/video/iplayer/tv/channels/{channel_id}")
+@route("/video/iplayer/tv/{channel_id}")
 def TVChannel(channel_id):
     channel = content.tv_channels[channel_id]
     oc = ObjectContainer(title1=channel.title)
@@ -171,6 +141,29 @@ def TVChannel(channel_id):
     #dir.Append(Function(DirectoryItem(AddFormats, title = "Formats", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
 
     return oc
+
+@route("/video/iplayer/tv/{channel_id}/popular")
+def TVChannelPopular(channel_id):
+    url = "%s/iplayer/%s/popular" % (BBC_FEED_URL, channel_id)
+    return RSSListContainer(title="Most Popular", url=url)
+
+@route("/video/iplayer/tv/{channel_id}/highlights")
+def TVChannelHighlights(channel_id):
+    url = "%s/iplayer/%s/highlights" % (BBC_FEED_URL, channel_id)
+    return RSSListContainer(title="Highlights", url=url)
+
+@route("/video/iplayer/tv/{channel_id}/{year}/{month}/{day}")
+def TVScheduleForDay(channel_id, year, month, day):
+    channel = content.tv_channels[channel_id]
+    url = "%s/%s/%s/%s.json" % (channel.schedule_url, year, month, day)
+    return JSONScheduleListContainer(url=url) 
+
+@route("/video/iplayer/tv/{channel_id}/{for_when}")
+def TVSchedule(channel_id, for_when):
+    channel = content.tv_channels[channel_id]
+    url = channel.schedule_url + for_when + ".json"
+    return JSONScheduleListContainer(url=url) 
+
 
 def RSSListContainer(title="", url=None):
     thumb_url = "http://node2.bbcimg.co.uk/iplayer/images/episode/%s_640_360.jpg"
