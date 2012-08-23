@@ -62,11 +62,30 @@ def MainMenu():
 
     oc.add(DirectoryObject(key=Callback(TVChannels), title="TV Channels"))
 
-    #oc.add(DirectoryObject(key = Callback(AddCategories, title = "Categories"), title = "Categories"))
+    oc.add(DirectoryObject(key=Callback(Categories), title="Categories"))
 
     return oc
 
+@route("/video/iplayer/tv")
+def TVChannels():
+    oc = ObjectContainer(title2="TV Channels")
+    # FIXME: can't rely on ordering of dict.items - use an ordered list for ordering
+    for (channel_id, channel) in content.tv_channels.items():
+        oc.add(DirectoryObject(key=Callback(TVChannel, channel_id=channel_id), title=channel.title))
+    return oc
 
+@route("/video/iplayer/category")
+def CategoryList():
+    oc = ObjectContainer(title2="Categories")
+    for category in content.categories:
+        oc.add(DirectoryObject(key=Callback(Category, category_id=category.id), title=category.title))
+    return oc
+
+@route("/video/iplayer/category/{category_id}")
+def Category(category_id):
+    category = content.category[category_id]
+    oc = ObjectContainer(title2=category.title)
+    return oc
 
 @route("/video/iplayer/radio/highlights")
 def RadioHighlights():
@@ -79,12 +98,6 @@ def PopularRadio():
     return RSSListContainer(title="Most Popular Radio", url=url)
 
 
-@route("/video/iplayer/tv")
-def TVChannels():
-    oc = ObjectContainer(title2="TV Channels")
-    for (channel_id, channel) in content.tv_channels.items():
-        oc.add(DirectoryObject(key=Callback(TVChannel, channel_id=channel_id), title=channel.title))
-    return oc
 
 @route("/video/iplayer/tv/highlights")
 def TVHighlights():

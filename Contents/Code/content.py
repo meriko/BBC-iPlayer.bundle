@@ -18,8 +18,6 @@ class Channel(object):
         if region_id:
             self.schedule_url = self.schedule_url + self.region_id + "/"
 
-        Log.Debug(self.schedule_url)
-
 tv_channels = {
     'bbcone':           Channel('BBC One',           L("summary-bbc_one"),        'bbc_one',          'tv', 'bbc_one',         None,              'bbcone',    'london',  'bbc_one_london',  None,             None),
     'bbctwo':           Channel('BBC Two',           L("summary-bbc_two"),        'bbc_two',          'tv', 'bbc_two',         None,              'bbctwo',    'england', 'bbc_two_england', None,             None),
@@ -32,3 +30,48 @@ tv_channels = {
     'bbchd':            Channel('BBC HD',            None,                        'bbc_hd_1',         'tv', 'bbc_hd',         'bbc_hd_1',         'bbchd',      None,     None,              BBC_HD_THUMB_URL, BBC_HD_PLAYER_URL),
     'bbc_alba':         Channel('BBC Alba',          None,                        'bbc_alba',         'tv', 'bbc_alba',       'bbcalba',          'bbc_alba',   None,     'bbc_alba',        None,             None)
 }
+
+#categories = {
+#    'childrens':        Category("Children's",    'childrens',     True),
+#    'comedy':           Category("Comedy",        'comedy',        True),
+#    'drama':            Category("Drama",         'drama',         True),
+#    'entertainment':    Category("Entertainment", 'entertainment', True),
+#    'factual':          Category("Factual",       'factual',       True),
+#    'learning':         Category("Learning",      'learning',      True),
+#    'music':            Category("Music",         'music',         True),
+#    'news':             Category("News",          'news',          False),
+#    'sport':            Category("Sport",         'sport',         True)
+#}
+#ordered_categories = sorted(categories.keys())
+#
+
+def slugify(string):
+    slug = string.lower()
+    slug = slug.replace("&", "and")
+    slug = slug.replace(" ", "_")
+    for char in ["'", "-", ", ", "!"]:
+        slug = slug.replace(char, "")
+    return slug
+    
+
+class Category(object):
+    def __init__(self, title, subcategories):
+        self.title = title
+        self.id = slugify(title)
+        self.subcategories = [Category(subtitle, []) for subtitle in subcategories]
+        self.subcategory = dict([(category.id, category) for category in self.subcategories])
+
+categories = [
+    Category("Learning", ["Pre-School", "5-11", "Adult"])
+]
+category = dict([(category.id, category) for category in categories])
+
+# Category("Learning", { "preschool": "Pre-School", "511": "5-11", "adult": "..
+# Category("Learning", {"Pre-School", "5-11"}
+
+# Category.slug is 'learning", cetegory.sub[sub_slug]
+# categories = dict([(cateogry.slug, category) for category in categories)
+
+# replace ("&", "and") (" ", "_"), ("'", ""), ("-", "")
+
+
