@@ -62,16 +62,18 @@ def MainMenu():
 
     oc.add(DirectoryObject(key=Callback(TVChannels), title="TV Channels"))
 
-    oc.add(DirectoryObject(key=Callback(Categories), title="Categories"))
+    #oc.add(DirectoryObject(key=Callback(Categories), title="Categories"))
 
     return oc
 
 @route("/video/iplayer/tv")
 def TVChannels():
     oc = ObjectContainer(title2="TV Channels")
-    # FIXME: can't rely on ordering of dict.items - use an ordered list for ordering
-    for (channel_id, channel) in content.tv_channels.items():
-        oc.add(DirectoryObject(key=Callback(TVChannel, channel_id=channel_id), title=channel.title))
+    for channel_id in content.ordered_tv_channels:
+        channel = content.tv_channels[channel_id] 
+        thumb = Resource.ContentsOfURLWithFallback(url=channel.thumb_url, fallback=ICON_DEFAULT)
+        Log.Info(channel.thumb_url)
+        oc.add(DirectoryObject(key=Callback(TVChannel, channel_id=channel_id), title=channel.title, thumb=thumb))
     return oc
 
 @route("/video/iplayer/category")
@@ -113,18 +115,7 @@ def PopularTV():
 def TVChannel(channel_id):
     channel = content.tv_channels[channel_id]
     oc = ObjectContainer(title1=channel.title)
-
-    # FIXME: TVChannel, LiveChannel, RadioChannel with some VideoObject
-    if channel.type == "tv":
-        if channel.thumb_id == None:
-            thumb = BBC_TV_CHANNEL_THUMB_URL % channel.rss_channel_id
-        else:
-            thumb = BBC_TV_CHANNEL_THUMB_URL % channel.thumb_id
-    else:
-        if channel.thumb_id == None:
-            thumb = BBC_RADIO_CHANNEL_THUMB_URL % channel.rss_channel_id
-        else:
-            thumb = BBC_RADIO_CHANNEL_THUMB_URL % channel.thumb_id
+    thumb = Resource.ContentsOfURLWithFallback(url=channel.thumb_url, fallback=ICON_DEFAULT)
 
     # No URL service found for http://www.bbc.co.uk/iplayer/tv/bbc_two_england/watchlive
     #if channel.live_id != None:
@@ -133,23 +124,22 @@ def TVChannel(channel_id):
     #    else:
     #        oc.add(VideoClipObject(url = BBC_LIVE_RADIO_URL % channel.live_id, title = "On Now", thumb = thumb))
 
-    # FIXME: if channel has highlights
-    if channel.rss_channel_id != None:
+    if channel.has_highlights():
         # FIXME: tv/channel/highlights instead
-        oc.add(DirectoryObject(key=Callback(TVChannelHighlights, channel_id=channel_id), title="Highlights"))
-        oc.add(DirectoryObject(key=Callback(TVChannelPopular, channel_id=channel_id), title="Most Popular"))
+        oc.add(DirectoryObject(key=Callback(TVChannelHighlights, channel_id=channel_id), title="Highlights", thumb=thumb))
+        oc.add(DirectoryObject(key=Callback(TVChannelPopular, channel_id=channel_id), title="Most Popular", thumb=thumb))
 
     #dir.Append(Function(DirectoryItem(AddCategories, title = "Categories", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
 
     # Add the last week's worth of schedules
-    oc.add(DirectoryObject(key=Callback(TVSchedule, for_when="today", channel_id=channel_id), title="Today"))
-    oc.add(DirectoryObject(key=Callback(TVSchedule, for_when="yesterday", channel_id=channel_id), title="Yesterday"))
+    oc.add(DirectoryObject(key=Callback(TVSchedule, for_when="today", channel_id=channel_id), title="Today", thumb=thumb))
+    oc.add(DirectoryObject(key=Callback(TVSchedule, for_when="yesterday", channel_id=channel_id), title="Yesterday", thumb=thumb))
     now = datetime.today()
     for i in range (2, 7):
         date = now - timedelta(days=i)
         for_when = date.strftime("%Y/%m/%d")
         url = "/video/iplayer/tv/%s/schedule/%s" % (channel_id, for_when)
-        oc.add(DirectoryObject(key=Callback(TVScheduleForDay, channel_id=channel_id, year=date.year, month=date.month, day=date.day), title=times.days[date.weekday()]))
+        oc.add(DirectoryObject(key=Callback(TVScheduleForDay, channel_id=channel_id, year=date.year, month=date.month, day=date.day), title=times.days[date.weekday()], thumb=thumb))
 
     #dir.Append(Function(DirectoryItem(AddFormats, title = "Formats", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
 
@@ -169,14 +159,15 @@ def TVChannelHighlights(channel_id):
 def TVScheduleForDay(channel_id, year, month, day):
     channel = content.tv_channels[channel_id]
     url = "%s/%s/%s/%s.json" % (channel.schedule_url, year, month, day)
-    return JSONScheduleListContainer(url=url) 
+    Log.Info(url)
+    return JSONScheduleListContainer(title=channel.title, url=url)
 
 @route("/video/iplayer/tv/{channel_id}/{for_when}")
 def TVSchedule(channel_id, for_when):
     channel = content.tv_channels[channel_id]
     url = channel.schedule_url + for_when + ".json"
-    return JSONScheduleListContainer(url=url) 
-
+    Log.Info(url)
+    return JSONScheduleListContainer(title=channel.title, url=url)
 
 def RSSListContainer(title="", url=None):
     thumb_url = "http://node2.bbcimg.co.uk/iplayer/images/episode/%s_640_360.jpg"
@@ -184,7 +175,7 @@ def RSSListContainer(title="", url=None):
     feed = RSS.FeedFromString(url)
     if feed is None: return
 
-    oc = ObjectContainer()
+    oc = ObjectContainer(title1=title)
 
     for entry in feed.entries:
         thumb = thumb_url % entry["link"].split("/")[-3]
@@ -198,6 +189,7 @@ def RSSListContainer(title="", url=None):
 
         content = HTML.ElementFromString(entry["content"][0].value)
         summary = content.xpath("p")[1].text.strip()
+        # FIXME: add duration
         oc.add(EpisodeObject(url=entry["link"], title=title, summary=summary, thumb=thumb))
 
     if len(oc) == 0:
@@ -205,12 +197,13 @@ def RSSListContainer(title="", url=None):
 
     return oc
 
-def JSONScheduleListContainer(url = None):
+def JSONScheduleListContainer(title="", url=None):
+    Log.Info("JSON")
     # this function generates the schedule lists for today / yesterday etc. from a JSON feed
     jsonObj = JSON.ObjectFromURL(url)
     if jsonObj is None: return
   
-    oc = ObjectContainer()
+    oc = ObjectContainer(title1=title)
 
     day = jsonObj["schedule"]["day"]
     for broadcast in day["broadcasts"]:
