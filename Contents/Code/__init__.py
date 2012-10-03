@@ -62,7 +62,7 @@ def MainMenu():
 
     oc.add(DirectoryObject(key=Callback(TVChannels), title="TV Channels"))
 
-    #oc.add(DirectoryObject(key=Callback(Categories), title="Categories"))
+    oc.add(DirectoryObject(key=Callback(Categories), title="Categories"))
 
     return oc
 
@@ -77,7 +77,7 @@ def TVChannels():
     return oc
 
 @route("/video/iplayer/category")
-def CategoryList():
+def Categories():
     oc = ObjectContainer(title2="Categories")
     for category in content.categories:
         oc.add(DirectoryObject(key=Callback(Category, category_id=category.id), title=category.title))
@@ -86,7 +86,9 @@ def CategoryList():
 @route("/video/iplayer/category/{category_id}")
 def Category(category_id):
     category = content.category[category_id]
-    oc = ObjectContainer(title2=category.title)
+    oc = ObjectContainer(title1=category.title)
+    for subcategory in category.subcategories:
+        oc.add(DirectoryObject(title=subcategory.title))
     return oc
 
 @route("/video/iplayer/radio/highlights")
@@ -98,8 +100,6 @@ def RadioHighlights():
 def PopularRadio():
     url = BBC_FEED_URL + "/iplayer/popular/radio"
     return RSSListContainer(title="Most Popular Radio", url=url)
-
-
 
 @route("/video/iplayer/tv/highlights")
 def TVHighlights():

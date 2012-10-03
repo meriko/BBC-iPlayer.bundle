@@ -43,20 +43,6 @@ tv_channels = {
 }
 ordered_tv_channels = ['bbcone', 'bbctwo', 'bbcthree', 'bbcfour', 'cbbc', 'cbeebies', 'bbcnews', 'parliament', 'bbchd', 'bbcalba']
 
-#categories = {
-#    'childrens':        Category("Children's",    'childrens',     True),
-#    'comedy':           Category("Comedy",        'comedy',        True),
-#    'drama':            Category("Drama",         'drama',         True),
-#    'entertainment':    Category("Entertainment", 'entertainment', True),
-#    'factual':          Category("Factual",       'factual',       True),
-#    'learning':         Category("Learning",      'learning',      True),
-#    'music':            Category("Music",         'music',         True),
-#    'news':             Category("News",          'news',          False),
-#    'sport':            Category("Sport",         'sport',         True)
-#}
-#ordered_categories = sorted(categories.keys())
-#
-
 def slugify(string):
     slug = string.lower()
     slug = slug.replace("&", "and")
@@ -74,16 +60,15 @@ class Category(object):
         self.subcategory = dict([(category.id, category) for category in self.subcategories])
 
 categories = [
-    Category("Learning", ["Pre-School", "5-11", "Adult"])
+    Category("Children's", ["Animation", "Drama", "Entertainment & Comedy", "Factual", "Games & Quizzes", "Music", "Other"]),
+    Category("Comedy", ["Music", "Satire", "Sitcoms", "Sketch", "Spoof", "Standup", "Other"]),
+    Category("Drama", ["Action & Adventure", "Biographical", "Classic & Period", "Crime", "Historical", "Horror & Supernatural", "Legal & Courtroom", "Medical", "Musical", "Psychological", "Relationships & Romance", "SciFi & Fantasy", "Soaps", "Thriller", "War & Disaster", "Other"]),
+    Category("Entertainment", ["Discussion & Talk Shows", "Games & Quizzes", "Makeovers", "Phone-ins", "Reality", "Talent Shows", "Variety Shows", "Other"]),
+    Category("Factual", ["Antiques", "Arts, Culture & the Media", "Beauty & Style", "Cars & Motors", "Cinema", "Consumer", "Crime & Justice", "Disability", "Families & Relationships", "Food & Drink", "Health & Wellbeing", "History", "Homes & Gardens", "Life Stories", "Money", "Pets & Animals", "Politics", "Science & Nature", "Travel", "Other"]),
+    Category("Learning", ["Pre-School", "5-11", "Adult", "Other"]),
+    Category("Music", ["Classic Pop & Rock", "Classical", "Country", "Dance & Electronica", "Desi", "Easy Listening, Soundtracks & Musicals", "Folk", "Hip Hop, R'n'B & Dancehall", "Jazz & Blues", "Pop & Chart", "Rock & Indie", "Soul & Reggae", "World", "Other"]),
+    Category("Sport", ["Boxing", "Cricket", "Cycling", "Equestrian", "Football", "Formula One", "Golf", "Horse Racing", "Motorsport", "Olympics", "Rugby League", "Rugby Union", "Tennis", "Other"])
 ]
 category = dict([(category.id, category) for category in categories])
-
-# Category("Learning", { "preschool": "Pre-School", "511": "5-11", "adult": "..
-# Category("Learning", {"Pre-School", "5-11"}
-
-# Category.slug is 'learning", cetegory.sub[sub_slug]
-# categories = dict([(cateogry.slug, category) for category in categories)
-
-# replace ("&", "and") (" ", "_"), ("'", ""), ("-", "")
 
 
