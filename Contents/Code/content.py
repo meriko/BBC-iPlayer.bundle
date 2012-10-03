@@ -59,6 +59,12 @@ class Category(object):
         self.subcategories = [Category(subtitle, []) for subtitle in subcategories]
         self.subcategory = dict([(category.id, category) for category in self.subcategories])
 
+    def popular_url(self):
+        return "http://feeds.bbc.co.uk/iplayer/popular/%s/tv" % self.id
+    
+    def highlights_url(self):
+        return "http://feeds.bbc.co.uk/iplayer/highlights/%s/tv" % self.id
+
 categories = [
     Category("Children's", ["Animation", "Drama", "Entertainment & Comedy", "Factual", "Games & Quizzes", "Music", "Other"]),
     Category("Comedy", ["Music", "Satire", "Sitcoms", "Sketch", "Spoof", "Standup", "Other"]),

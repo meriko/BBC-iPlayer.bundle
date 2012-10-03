@@ -72,7 +72,6 @@ def TVChannels():
     for channel_id in content.ordered_tv_channels:
         channel = content.tv_channels[channel_id] 
         thumb = Resource.ContentsOfURLWithFallback(url=channel.thumb_url, fallback=ICON_DEFAULT)
-        Log.Info(channel.thumb_url)
         oc.add(DirectoryObject(key=Callback(TVChannel, channel_id=channel_id), title=channel.title, thumb=thumb))
     return oc
 
@@ -87,9 +86,21 @@ def Categories():
 def Category(category_id):
     category = content.category[category_id]
     oc = ObjectContainer(title1=category.title)
+    oc.add(DirectoryObject(key=Callback(CategoryHighlights, category_id=category_id), title="Highlights"))
+    oc.add(DirectoryObject(key=Callback(CategoryPopular, category_id=category_id), title="Most Popular"))
     for subcategory in category.subcategories:
         oc.add(DirectoryObject(title=subcategory.title))
     return oc
+
+@route("/video/iplayer/category/{category_id}/highlights")
+def CategoryHighlights(category_id):
+    category = content.category[category_id]
+    return RSSListContainer(title="%s Highlights" % category.title, url=category.highlights_url())
+
+@route("/video/iplayer/category/{category_id}/popular")
+def CategoryPopular(category_id):
+    category = content.category[category_id]
+    return RSSListContainer(title="Popular %s" % category.title, url=category.popular_url())
 
 @route("/video/iplayer/radio/highlights")
 def RadioHighlights():
