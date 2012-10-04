@@ -45,7 +45,6 @@ def slugify(string):
     for char in ["'", "-", ", ", "!"]:
         slug = slug.replace(char, "")
     return slug
-    
 
 class Category(object):
     def __init__(self, title, subcategories):
@@ -56,9 +55,12 @@ class Category(object):
 
     def popular_url(self):
         return "http://feeds.bbc.co.uk/iplayer/popular/%s/tv" % self.id
-    
+
     def highlights_url(self):
         return "http://feeds.bbc.co.uk/iplayer/highlights/%s/tv" % self.id
+
+    def subcategory_url(self, subcategory_id):
+        return "http://feeds.bbc.co.uk/iplayer/%s/%s/list" % (self.id, subcategory_id)
 
 categories = [
     Category("Children's", ["Animation", "Drama", "Entertainment & Comedy", "Factual", "Games & Quizzes", "Music", "Other"]),

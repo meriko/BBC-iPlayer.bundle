@@ -83,7 +83,7 @@ def Category(category_id):
     oc.add(DirectoryObject(key=Callback(CategoryHighlights, category_id=category_id), title="Highlights"))
     oc.add(DirectoryObject(key=Callback(CategoryPopular, category_id=category_id), title="Most Popular"))
     for subcategory in category.subcategories:
-        oc.add(DirectoryObject(title=subcategory.title))
+        oc.add(DirectoryObject(key=Callback(Subcategory, category_id=category_id, subcategory_id=subcategory.id), title=subcategory.title))
     return oc
 
 @route("/video/iplayer/category/{category_id}/highlights")
@@ -95,6 +95,11 @@ def CategoryHighlights(category_id):
 def CategoryPopular(category_id):
     category = content.category[category_id]
     return RSSListContainer(title="Popular %s" % category.title, url=category.popular_url())
+
+@route("/video/iplayer/category/{category_id}/{subcategory_id}")
+def Subcategory(category_id, subcategory_id):
+    category = content.category[category_id]
+    return RSSListContainer(title=category.title, url=category.subcategory_url(subcategory_id))
 
 @route("/video/iplayer/radio/highlights")
 def RadioHighlights():
