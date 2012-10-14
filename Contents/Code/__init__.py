@@ -50,9 +50,7 @@ def Start():
 def MainMenu():
     oc = ObjectContainer()
     oc.add(DirectoryObject(key=Callback(TVHighlights), title="TV Highlights"))
-    oc.add(DirectoryObject(key=Callback(RadioHighlights), title="Radio Highlights"))
     oc.add(DirectoryObject(key=Callback(PopularTV), title="Most Popular TV"))
-    oc.add(DirectoryObject(key=Callback(PopularRadio), title="Most Popular Radio"))
 
     oc.add(DirectoryObject(key=Callback(TVChannels), title="TV Channels"))
 
@@ -101,16 +99,6 @@ def Subcategory(category_id, subcategory_id):
     category = content.category[category_id]
     return RSSListContainer(title=category.title, url=category.subcategory_url(subcategory_id))
 
-@route("/video/iplayer/radio/highlights")
-def RadioHighlights():
-    url = BBC_FEED_URL + "/iplayer/highlights/radio"
-    return RSSListContainer(title="Radio Highlights", url=url)
-
-@route("/video/iplayer/radio/popular")
-def PopularRadio():
-    url = BBC_FEED_URL + "/iplayer/popular/radio"
-    return RSSListContainer(title="Most Popular Radio", url=url)
-
 @route("/video/iplayer/tv/highlights")
 def TVHighlights():
     url = BBC_FEED_URL + "/iplayer/highlights/tv" 
@@ -127,19 +115,13 @@ def TVChannel(channel_id):
     oc = ObjectContainer(title1=channel.title)
     thumb = Resource.ContentsOfURLWithFallback(url=channel.thumb_url, fallback=ICON_DEFAULT)
 
-    # No URL service found for http://www.bbc.co.uk/iplayer/tv/bbc_two_england/watchlive
-    #if channel.live_id != None:
-    #    if channel.type == "tv":
-    #        oc.add(VideoClipObject(url = BBC_LIVE_TV_URL % channel.live_id, title = "On Now", thumb = thumb))
-    #    else:
-    #        oc.add(VideoClipObject(url = BBC_LIVE_RADIO_URL % channel.live_id, title = "On Now", thumb = thumb))
-
     if channel.has_highlights():
-        # FIXME: tv/channel/highlights instead
         oc.add(DirectoryObject(key=Callback(TVChannelHighlights, channel_id=channel_id), title="Highlights", thumb=thumb))
         oc.add(DirectoryObject(key=Callback(TVChannelPopular, channel_id=channel_id), title="Most Popular", thumb=thumb))
 
+    # FIXME: do we need categories/formats per channel?
     #dir.Append(Function(DirectoryItem(AddCategories, title = "Categories", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
+    #dir.Append(Function(DirectoryItem(AddFormats, title = "Formats", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
 
     # Add the last week's worth of schedules
     oc.add(DirectoryObject(key=Callback(TVSchedule, for_when="today", channel_id=channel_id), title="Today", thumb=thumb))
@@ -148,8 +130,6 @@ def TVChannel(channel_id):
     for i in range (2, 7):
         date = now - timedelta(days=i)
         oc.add(DirectoryObject(key=Callback(TVScheduleForDay, channel_id=channel_id, year=date.year, month=date.month, day=date.day), title=times.days[date.weekday()], thumb=thumb))
-
-    #dir.Append(Function(DirectoryItem(AddFormats, title = "Formats", subtitle = sender.itemTitle, thumb = thumb), thumb = thumb, channel_id = json_channel_id, thumb_url = thumb_url, player_url = player_url))
 
     return oc
 

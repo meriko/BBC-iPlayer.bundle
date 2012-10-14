@@ -23,6 +23,12 @@ class Channel(object):
     def popular_url(self):
         return "http://feeds.bbc.co.uk/iplayer/%s/highlights" % self.channel_id
 
+    # def live_url(self):
+    # No URL service found for http://www.bbc.co.uk/iplayer/tv/bbc_two_england/watchlive
+    #if channel.live_id != None:
+    #    if channel.type == "tv":
+    #        oc.add(VideoClipObject(url = BBC_LIVE_TV_URL % channel.live_id, title = "On Now", thumb = thumb))
+
 tv_channels = {
     #                           title                thumb               channel_id    region_id
     'bbcone':           Channel('BBC One',           'bbc_one',          'bbcone',    'london'),
