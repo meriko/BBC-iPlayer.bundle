@@ -18,10 +18,10 @@ class Channel(object):
         return True
 
     def highlights_url(self):
-        return "http://feeds.bbc.co.uk/iplayer/%s/popular" % self.channel_id
+        return "http://feeds.bbc.co.uk/iplayer/%s/highlights" % self.channel_id
 
     def popular_url(self):
-        return "http://feeds.bbc.co.uk/iplayer/%s/highlights" % self.channel_id
+        return "http://feeds.bbc.co.uk/iplayer/%s/popular" % self.channel_id
 
     # def live_url(self):
     # No URL service found for http://www.bbc.co.uk/iplayer/tv/bbc_two_england/watchlive
