@@ -32,13 +32,13 @@ def Start():
     ObjectContainer.view_group = "Info"
     ObjectContainer.title1 = TITLE
 
-    DirectoryObject.art = R(ICON_DEFAULT)
+    DirectoryObject.art = R(ART_DEFAULT)
     DirectoryObject.thumb = R(ICON_DEFAULT)
 
-    InputDirectoryObject.art = R(ICON_DEFAULT)
+    InputDirectoryObject.art = R(ART_DEFAULT)
     InputDirectoryObject.thumb = R(ICON_SEARCH)
 
-    PrefsObject.art = R(ICON_DEFAULT)
+    PrefsObject.art = R(ART_DEFAULT)
     PrefsObject.thumb = R(ICON_PREFS)
 
     HTTP.CacheTime = CACHE_1HOUR
