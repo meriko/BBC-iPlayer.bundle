@@ -73,8 +73,8 @@ def PlayVideo(url, media_selector_url=None, height='720'):
 
         stream = None
         for potential_stream in streams:
-          # Give preference to live streams
-          if potential_stream.get('application') == 'ondemand':
+          # Give preference to akamai streams
+          if potential_stream.get('supplier') == 'akamai':
             stream = potential_stream
             break
 
@@ -93,7 +93,7 @@ def PlayVideo(url, media_selector_url=None, height='720'):
 
     rtmp_url = 'rtmps://%s/%s?%s' % (server, application, auth)
 
-    clip = stream.get('identifier')
+    clip = "%s?%s" % (stream.get('identifier'), auth)
     swf_url = 'http://www.bbc.co.uk/emp/10player.swf'
     return IndirectResponse(VideoClipObject, key = RTMPVideoURL(url = rtmp_url, clip = clip, swf_url = swf_url, live = True))
 
