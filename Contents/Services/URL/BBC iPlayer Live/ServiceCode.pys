@@ -1,7 +1,17 @@
-httpHeaders = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0'}
 RE_ID = Regex('iplayer/tv/([^/]+)/watchlive')
-RE_DETAILS = Regex('episodeRegistry.addData\([^{]*(.+)\)+')
 NAMESPACES = {'m': 'http://bbc.co.uk/2008/mp/mediaselection'}
+
+CHANNEL_LOOKUP = {
+  "bbc_one_london": "bbc_one",
+  "bbc_two_england": "bbc_two",
+  "bbc_three": "bbc_three",
+  "bbc_four": "bbc_four",
+  "cbbc": "cbbc",
+  "cbeebies": "cbeebies_1",
+  "bbc_news24": "bbc_news24",
+  "bbc_parliament": "bbc_parliament_1",
+  "bbc_alba": "bbc_alba"
+}
 
 ####################################################################################################
 def NormalizeURL(url):
@@ -10,7 +20,23 @@ def NormalizeURL(url):
 
 ####################################################################################################
 def MetadataObjectForURL(url):
-  return VideoClipObject()
+
+  page = HTML.ElementFromURL(url)
+  on_air = page.xpath('//div[@id = "currently-on-air"]')[0]
+
+  title = on_air.xpath('.//h2[@class = "title"]/text()')[0]
+
+  summary = on_air.xpath('.//div[contains(@class, "long-synopsis")]//text()')[0]
+  if summary.endswith('('):
+    summary = summary.rstrip('(').strip()
+
+  id = RE_ID.findall(url)[0]
+  thumb = "http://www.bbc.co.uk/iplayer/img/tv/%s.jpg" % CHANNEL_LOOKUP[id]
+
+  return VideoClipObject(
+    title = title,
+    summary = summary,
+    thumb = thumb)
 
 ####################################################################################################
 def MediaObjectsForURL(url):
