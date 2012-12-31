@@ -1,0 +1,103 @@
+httpHeaders = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0'}
+RE_ID = Regex('iplayer/tv/([^/]+)/watchlive')
+RE_DETAILS = Regex('episodeRegistry.addData\([^{]*(.+)\)+')
+NAMESPACES = {'m': 'http://bbc.co.uk/2008/mp/mediaselection'}
+
+####################################################################################################
+def NormalizeURL(url):
+
+  return url
+
+####################################################################################################
+def MetadataObjectForURL(url):
+  return VideoClipObject()
+
+####################################################################################################
+def MediaObjectsForURL(url):
+
+  return [
+    MediaObject(
+      protocol = 'rtmp',
+      video_resolution = '720',
+      audio_channels = 2,
+      parts = [PartObject(key=Callback(DetermineAvailableVideo, url = url, height = '720'))],
+    ),
+    MediaObject(
+      protocol = 'rtmp',
+      video_resolution = '468',
+      audio_channels = 2,
+      parts = [PartObject(key=Callback(DetermineAvailableVideo, url = url, height = '468'))],
+    ),
+    MediaObject(
+      protocol = 'rtmp',
+      video_resolution = 'sd',
+      audio_channels = 2,
+      parts = [PartObject(key=Callback(DetermineAvailableVideo, url = url, height = '360'))],
+    )
+  ]
+
+####################################################################################################
+
+@indirect
+def DetermineAvailableVideo(url, height):
+
+  try:
+    Log(url)
+    Log("IABI")
+    id = RE_ID.findall(url)[0]
+    media_selector_url = "http://www.bbc.co.uk/mediaselector/4/mtis/stream/%s" % id
+    return IndirectResponse(VideoClipObject, key = Callback(PlayVideo, url = url, media_selector_url = media_selector_url, height = height, post_url = media_selector_url))
+
+  except:
+    # Just in case there is a problem obtaining the RTMP details, we'll fallback to the older WebKit implementation.
+    Log.Exception("Error obtaining RTMP details, falling back to WebKit")
+    return IndirectResponse(VideoClipObject, key = WebVideoURL(url)) 
+
+####################################################################################################
+@indirect
+def PlayVideo(url, media_selector_url=None, height='720'):
+
+  try:
+    # Make PlayVideo function backwards compatible
+    if not media_selector_url:
+      raise
+
+    stream_details = XML.ElementFromURL(media_selector_url)
+
+    last_stream = None
+    heights = ['720', '468', '360']
+    index = heights.index(height)
+    for height_index in range(index, len(heights)):
+      streams = stream_details.xpath('//m:media[@kind = "video" and @height = "%s"]/m:connection[@protocol = "rtmp"]' % heights[height_index], namespaces = NAMESPACES)
+      if len(streams) > 0:
+
+        stream = None
+        for potential_stream in streams:
+          # Give preference to live streams
+          if potential_stream.get('application') == 'ondemand':
+            stream = potential_stream
+            break
+
+        if stream == None:
+          stream = streams[0]
+        Log("Stream: " + heights[height_index])
+        break
+    
+    server = stream.get('server')
+    auth = stream.get('authString')
+
+    supplier = stream.get('supplier')
+    application = stream.get('application')
+    if application is None and supplier == 'akamai':
+      application = 'ondemand'
+
+    rtmp_url = 'rtmps://%s/%s?%s' % (server, application, auth)
+
+    clip = stream.get('identifier')
+    swf_url = 'http://www.bbc.co.uk/emp/10player.swf'
+    return IndirectResponse(VideoClipObject, key = RTMPVideoURL(url = rtmp_url, clip = clip, swf_url = swf_url, live = True))
+
+  except:
+    # Just in case there is a problem obtaining the RTMP details, we'll fallback to the older WebKit implementation.
+    Log.Exception("Error obtaining RTMP details, falling back to WebKit")
+    return IndirectResponse(VideoClipObject, key = WebVideoURL(url)) 

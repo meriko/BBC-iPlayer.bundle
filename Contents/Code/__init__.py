@@ -113,6 +113,9 @@ def Channel(channel_id):
     oc = ObjectContainer(title1=channel.title)
     thumb = Resource.ContentsOfURLWithFallback(url=channel.thumb_url, fallback=ICON_DEFAULT)
 
+    if channel.can_watch_live():
+        oc.add(VideoClipObject(url = channel.live_url(), title = "Watch Live", thumb = thumb))
+
     if channel.has_highlights():
         oc.add(DirectoryObject(key=Callback(ChannelHighlights, channel_id=channel_id), title="Highlights", thumb=thumb))
         oc.add(DirectoryObject(key=Callback(ChannelPopular, channel_id=channel_id), title="Most Popular", thumb=thumb))
