@@ -42,8 +42,6 @@ def MediaObjectsForURL(url):
 def DetermineAvailableVideo(url, height):
 
   try:
-    Log(url)
-    Log("IABI")
     id = RE_ID.findall(url)[0]
     media_selector_url = "http://www.bbc.co.uk/mediaselector/4/mtis/stream/%s" % id
     return IndirectResponse(VideoClipObject, key = Callback(PlayVideo, url = url, media_selector_url = media_selector_url, height = height, post_url = media_selector_url))
@@ -91,7 +89,7 @@ def PlayVideo(url, media_selector_url=None, height='720'):
     if application is None and supplier == 'akamai':
       application = 'ondemand'
 
-    rtmp_url = 'rtmps://%s/%s?%s' % (server, application, auth)
+    rtmp_url = 'rtmp://%s/%s?%s' % (server, application, auth)
 
     clip = "%s?%s" % (stream.get('identifier'), auth)
     swf_url = 'http://www.bbc.co.uk/emp/10player.swf'
