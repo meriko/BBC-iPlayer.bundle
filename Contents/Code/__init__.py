@@ -1,35 +1,32 @@
 from datetime import datetime, timedelta
-import math, re
+import math
 import content
 import config
 import times
 
-TITLE                         = "BBC iPlayer"
+TITLE  = "BBC iPlayer"
+PREFIX = "/video/iplayer"
 
-BBC_URL                       = "http://www.bbc.co.uk"
-BBC_FEED_URL                  = "http://feeds.bbc.co.uk"
-BBC_LIVE_TV_URL               = "%s/iplayer/tv/%%s/watchlive" % BBC_URL
+BBC_URL           = "http://www.bbc.co.uk"
+BBC_FEED_URL      = "http://feeds.bbc.co.uk"
+BBC_LIVE_TV_URL   = "%s/iplayer/tv/%%s/watchlive" % BBC_URL
+BBC_SEARCH_URL    = "%s/iplayer/search?q=%%s&page=%%s" % BBC_URL
+BBC_SEARCH_TV_URL = BBC_SEARCH_URL + "&filter=tv"
 
-BBC_SEARCH_URL                = "%s/iplayer/search?q=%%s&page=%%s" % BBC_URL
-BBC_SEARCH_TV_URL             = BBC_SEARCH_URL + "&filter=tv"
-
-RE_SEARCH = Regex('episodeRegistry\\.addData\\((.*?)\\);', Regex.IGNORECASE | Regex.DOTALL)
+RE_SEARCH      = Regex('episodeRegistry\\.addData\\((.*?)\\);', Regex.IGNORECASE | Regex.DOTALL)
 RE_SEARCH_NEXT = Regex('title="Next page"')
 
-ART_DEFAULT                   = "art-default.jpg"
-ART_WALL                      = "art-wall.jpg"
-ICON_DEFAULT                  = "icon-default.png"
-ICON_SEARCH                   = "icon-search.png"
-ICON_PREFS                    = "icon-prefs.png"
+ART_DEFAULT  = "art-default.jpg"
+ART_WALL     = "art-wall.jpg"
+ICON_DEFAULT = "icon-default.png"
+ICON_SEARCH  = "icon-search.png"
+ICON_PREFS   = "icon-prefs.png"
 
+MAX_RSS_ITEMS_PER_PAGE = 25
 
+##########################################################################################
 def Start():
-    Plugin.AddPrefixHandler("/video/iplayer", MainMenu, TITLE, ICON_DEFAULT, ART_WALL)
-    Plugin.AddViewGroup("Menu", viewMode="List", mediaType="items")
-    Plugin.AddViewGroup("Info", viewMode="InfoList", mediaType="items")
-
     ObjectContainer.art = R(ART_DEFAULT)
-    ObjectContainer.view_group = "Info"
     ObjectContainer.title1 = TITLE
 
     DirectoryObject.art = R(ART_DEFAULT)
@@ -44,19 +41,21 @@ def Start():
     HTTP.CacheTime = CACHE_1HOUR
     HTTP.Headers['User-agent'] = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.11) Gecko/20101012 Firefox/3.6.11"
 
-
+##########################################################################################
+@handler(PREFIX, TITLE, art = ART_DEFAULT, thumb = ICON_DEFAULT)
 def MainMenu():
     oc = ObjectContainer()
+    
     oc.add(DirectoryObject(key=Callback(Highlights), title="Highlights"))
     oc.add(DirectoryObject(key=Callback(Popular), title="Most Popular"))
-
     oc.add(DirectoryObject(key=Callback(Channels), title="Channels"))
-
     oc.add(DirectoryObject(key=Callback(Categories), title="Categories"))
+    oc.add(DirectoryObject(key=Callback(AtoZ), title="A-Z"))
 
     return oc
 
-@route("/video/iplayer/tv")
+##########################################################################################
+@route(PREFIX + "/Channels")
 def Channels():
     oc = ObjectContainer(title2="Channels")
     for channel_id in content.ordered_tv_channels:
@@ -65,14 +64,25 @@ def Channels():
         oc.add(DirectoryObject(key=Callback(Channel, channel_id=channel_id), title=channel.title, thumb=thumb))
     return oc
 
-@route("/video/iplayer/tv/category")
+##########################################################################################
+@route(PREFIX + "/Categories")
 def Categories():
     oc = ObjectContainer(title2="Categories")
     for category in content.categories:
         oc.add(DirectoryObject(key=Callback(Category, category_id=category.id), title=category.title))
     return oc
+    
+##########################################################################################
+@route(PREFIX + "/AtoZ")
+def AtoZ():
+    oc = ObjectContainer(title2="A - Z")
+    for code in range(ord('a'), ord('z')):
+        letter = chr(code)
+        oc.add(DirectoryObject(key=Callback(RSSListContainer, title=letter.upper(), url=BBC_FEED_URL + "/iplayer/atoz/%s/list" % letter), title=letter.upper()))
+    return oc
 
-@route("/video/iplayer/tv/category/{category_id}")
+##########################################################################################
+@route(PREFIX + "Category")
 def Category(category_id):
     category = content.category[category_id]
     oc = ObjectContainer(title1=category.title)
@@ -82,32 +92,38 @@ def Category(category_id):
         oc.add(DirectoryObject(key=Callback(Subcategory, category_id=category_id, subcategory_id=subcategory.id), title=subcategory.title))
     return oc
 
-@route("/video/iplayer/tv/category/{category_id}/highlights")
+##########################################################################################
+@route(PREFIX + "/CategoryHighlights")
 def CategoryHighlights(category_id):
     category = content.category[category_id]
     return RSSListContainer(title="%s Highlights" % category.title, url=category.highlights_url())
 
-@route("/video/iplayer/tv/category/{category_id}/popular")
+##########################################################################################
+@route(PREFIX + "/CategoryPopular")
 def CategoryPopular(category_id):
     category = content.category[category_id]
     return RSSListContainer(title="Popular %s" % category.title, url=category.popular_url())
 
-@route("/video/iplayer/tv/category/{category_id}/{subcategory_id}")
+##########################################################################################
+@route(PREFIX + "/Subcategory")
 def Subcategory(category_id, subcategory_id):
     category = content.category[category_id]
     return RSSListContainer(title=category.title, url=category.subcategory_url(subcategory_id), sort=True)
 
-@route("/video/iplayer/tv/highlights")
+##########################################################################################
+@route(PREFIX + "/Highlights")
 def Highlights():
     url = BBC_FEED_URL + "/iplayer/highlights/tv" 
     return RSSListContainer(title="Highlights", url=url)
 
-@route("/video/iplayer/tv/popular")
+##########################################################################################
+@route(PREFIX + "/Popular")
 def Popular():
     url = BBC_FEED_URL + "/iplayer/popular/tv"
     return RSSListContainer(title="Most Popular", url=url)
 
-@route("/video/iplayer/tv/{channel_id}")
+##########################################################################################
+@route(PREFIX + "/Channel")
 def Channel(channel_id):
     channel = content.tv_channels[channel_id]
     oc = ObjectContainer(title1=channel.title)
@@ -134,30 +150,36 @@ def Channel(channel_id):
 
     return oc
 
-@route("/video/iplayer/tv/{channel_id}/popular")
+##########################################################################################
+@route(PREFIX + "/ChannelPopular")
 def ChannelPopular(channel_id):
     channel = content.tv_channels[channel_id]
     return RSSListContainer(title="Most Popular", url=channel.popular_url())
 
-@route("/video/iplayer/tv/{channel_id}/highlights")
+##########################################################################################
+@route(PREFIX + "/ChannelHighlights")
 def ChannelHighlights(channel_id):
     channel = content.tv_channels[channel_id]
     return RSSListContainer(title="Highlights", url=channel.highlights_url())
 
-@route("/video/iplayer/tv/{channel_id}/{year}/{month}/{day}")
+##########################################################################################
+@route(PREFIX + "/ScheduleForDay")
 def ScheduleForDay(channel_id, year, month, day):
     channel = content.tv_channels[channel_id]
     url = "%s/%s/%s/%s.json" % (channel.schedule_url, year, month, day)
     Log.Info(url)
     return JSONScheduleListContainer(title=channel.title, url=url)
 
-@route("/video/iplayer/tv/{channel_id}/{for_when}")
+##########################################################################################
+@route(PREFIX + "/Schedule")
 def Schedule(channel_id, for_when):
     channel = content.tv_channels[channel_id]
     url = channel.schedule_url + for_when + ".json"
     return JSONScheduleListContainer(title=channel.title, url=url)
 
-def RSSListContainer(title="", url=None, sort=False):
+##########################################################################################
+@route(PREFIX + "/RSSListContainer", offset = int)
+def RSSListContainer(title="", url=None, sort=False, offset=0):
     thumb_url = "http://node2.bbcimg.co.uk/iplayer/images/episode/%s_640_360.jpg"
 
     feed = RSS.FeedFromString(url)
@@ -165,7 +187,15 @@ def RSSListContainer(title="", url=None, sort=False):
 
     oc = ObjectContainer(title1=title)
 
+    counter = 0
+    totalEntries = len(feed.entries)
+
     for entry in feed.entries:
+        counter = counter + 1
+        
+        if counter < offset + 1:
+            continue
+            
         thumb = thumb_url % entry["link"].split("/")[-3]
         parts = entry["title"].split(": ")
 
@@ -178,16 +208,28 @@ def RSSListContainer(title="", url=None, sort=False):
         content = HTML.ElementFromString(entry["content"][0].value)
         summary = content.xpath("p")[1].text.strip()
         # FIXME: add duration
+        
         oc.add(EpisodeObject(url=entry["link"], title=title, summary=summary, thumb=thumb))
+        
+        # Add next page object if we exceed the max items per page
+        if counter - offset >= MAX_RSS_ITEMS_PER_PAGE and totalEntries > counter:
+            nextPage = (offset / MAX_RSS_ITEMS_PER_PAGE) + 2
+            lastPage = (totalEntries / MAX_RSS_ITEMS_PER_PAGE) + 1
+            titleNextPage = "Next page (" + str(nextPage) + "/" + str(lastPage) + ")..."
+            oc.add(NextPageObject(key=Callback(RSSListContainer, url=url, sort=sort, offset=counter), title=titleNextPage))
+            return oc
 
     if len(oc) == 0:
-        return MessageContainer(header=title, message="No programmes found.")
+        oc.header  = title
+        oc.message = "No programmes found."
+        return oc
 
     if sort:
         oc.objects.sort(key=lambda obj: obj.title)
 
     return oc
 
+##########################################################################################
 def JSONScheduleListContainer(title="", url=None):
     Log.Info("JSON")
     # this function generates the schedule lists for today / yesterday etc. from a JSON feed
