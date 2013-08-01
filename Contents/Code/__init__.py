@@ -1,8 +1,6 @@
-from datetime import datetime, timedelta
-import math
+from datetime import datetime
 import content
 import config
-import times
 
 TITLE  = "BBC iPlayer"
 PREFIX = "/video/iplayer"
@@ -14,6 +12,7 @@ BBC_SEARCH_URL    = "%s/iplayer/search?q=%%s&page=%%s" % BBC_URL
 BBC_SEARCH_TV_URL = BBC_SEARCH_URL + "&filter=tv"
 
 RE_SEARCH      = Regex('episodeRegistry\\.addData\\((.*?)\\);', Regex.IGNORECASE | Regex.DOTALL)
+RE_ORDER       = Regex('class="cta-add-to-favourites" href="pid-(.*?)"')
 RE_SEARCH_NEXT = Regex('title="Next page"')
 
 ART_DEFAULT  = "art-default.jpg"
@@ -21,6 +20,8 @@ ART_WALL     = "art-wall.jpg"
 ICON_DEFAULT = "icon-default.png"
 ICON_SEARCH  = "icon-search.png"
 ICON_PREFS   = "icon-prefs.png"
+
+DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 MAX_RSS_ITEMS_PER_PAGE = 25
 
@@ -51,6 +52,7 @@ def MainMenu():
     oc.add(DirectoryObject(key=Callback(Channels), title="Channels"))
     oc.add(DirectoryObject(key=Callback(Categories), title="Categories"))
     oc.add(DirectoryObject(key=Callback(AtoZ), title="A-Z"))
+    oc.add(InputDirectoryObject(key = Callback(Search), title="Search", prompt="Search")) 
 
     return oc
 
@@ -145,8 +147,8 @@ def Channel(channel_id):
     oc.add(DirectoryObject(key=Callback(Schedule, for_when="yesterday", channel_id=channel_id), title="Yesterday", thumb=thumb))
     now = datetime.today()
     for i in range (2, 7):
-        date = now - timedelta(days=i)
-        oc.add(DirectoryObject(key=Callback(ScheduleForDay, channel_id=channel_id, year=date.year, month=date.month, day=date.day), title=times.days[date.weekday()], thumb=thumb))
+        date = now - Datetime.Delta(days=i)
+        oc.add(DirectoryObject(key=Callback(ScheduleForDay, channel_id=channel_id, year=date.year, month=date.month, day=date.day), title=DAYS[date.weekday()], thumb=thumb))
 
     return oc
 
@@ -247,7 +249,7 @@ def JSONScheduleListContainer(title="", url=None):
         title = displayTitles["title"]
         foundSubtitle = displayTitles["subtitle"]
         pid = thisProgramme["pid"]
-        short_synopsis = thisProgramme["short_synopsis"] + "\n\n" + "Duration: " + times.DurationAsString(duration)
+        short_synopsis = thisProgramme["short_synopsis"]
       
         # assume unavailable unless we can find an expiry date of after now
         available = 0
@@ -256,7 +258,7 @@ def JSONScheduleListContainer(title="", url=None):
         if thisProgramme.has_key("media"):
             media = thisProgramme["media"]
             if media.has_key("expires"):
-                nowDate = datetime.now()
+                nowDate = Datetime.Now()
                 available = 1
                 if media["expires"] == None:
                     # use an expiry date in the distant future
@@ -270,4 +272,49 @@ def JSONScheduleListContainer(title="", url=None):
             player_url = config.BBC_HD_PLAYER_URL
             thumb_url = config.BBC_HD_THUMB_URL
             oc.add(EpisodeObject(url=player_url % pid, title = "%s %s" % (start, title), summary = short_synopsis, duration = duration, thumb = thumb_url % pid))
+    return oc
+
+##########################################################################################
+def Search(query, search_url = BBC_SEARCH_URL, page_num = 1):
+    oc = ObjectContainer(title1 = query)
+    
+    searchResults = HTTP.Request(search_url % (String.Quote(query),page_num)).content
+
+    # Extract out JS object which contains program info.
+    match = RE_SEARCH.search(searchResults)
+
+    if match:
+        jsonObj = JSON.ObjectFromString(match.group(1))
+        if jsonObj:
+            eps = jsonObj.values()
+
+            # Try to extract out the order of the show out of the html as the JSON object is a dictionary keyed by PID which means 
+            # the results order can't be guaranteed by just iterating through it.    
+            epOrder = []
+            for match in RE_ORDER.finditer(searchResults):
+                epOrder.append(match.group(1))
+
+            eps.sort(key=lambda ep: (ep['id'] in epOrder and (epOrder.index(ep['id']) + 1)) or 1000)
+
+            for progInfo in eps:
+                url = BBC_URL + progInfo['my_url']
+                duration = int(progInfo['duration']) * 1000
+                title = progInfo['complete_title']
+                foundSubtitle = progInfo['masterbrand_title']
+                Log(progInfo['original_broadcast_datetime'])
+                broadcast_date = Datetime.ParseDate(progInfo['original_broadcast_datetime'].split("T")[0]).date() 
+                pid = progInfo['id']
+                short_synopsis = progInfo['short_synopsis']
+    
+                if progInfo.has_key("availability") and progInfo["availability"] == 'CURRENT':
+                    oc.add(EpisodeObject(url=url, title=title, summary=short_synopsis, duration=duration, originally_available_at=broadcast_date, thumb=config.BBC_SD_THUMB_URL % pid)) 
+
+    if len(oc) == 0:
+        oc.header  = query
+        oc.message = "No programmes found."
+    else:
+        # See if we need a next button.
+        if RE_SEARCH_NEXT.search(searchResults):
+            oc.add(NextPageObject(key=Callback(Search, query = query, search_url = search_url, page_num = page_num + 1), title='More...', thumb=R(ICON_SEARCH)))
+
     return oc
