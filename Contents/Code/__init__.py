@@ -166,10 +166,13 @@ def Channel(tv, channel_id):
 def VideosFromRSS(title="", url=None, sort=False, offset=0):
     thumb_url = "http://node2.bbcimg.co.uk/iplayer/images/episode/%s_640_360.jpg"
 
-    feed = RSS.FeedFromURL(url)
-    if feed is None: return
-
     oc = ObjectContainer(title1=title)
+
+    try:
+        feed = RSS.FeedFromURL(url)
+        if feed is None: return NoProgrammesFound(oc, title)
+    except:
+        return NoProgrammesFound(oc, title)
 
     counter = 0
     totalEntries = len(feed.entries)

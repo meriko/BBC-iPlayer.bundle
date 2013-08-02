@@ -46,6 +46,7 @@ def MetadataObjectForURL(url):
   if summary.endswith('('):
     summary = summary.rstrip('(').strip()
 
+  thumb = None
   match = RE_ID_TV.findall(url)
   if match:
     id = match[0] 
