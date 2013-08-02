@@ -107,7 +107,6 @@ def Category(category_id):
 @route(PREFIX + "/Format")
 def Format(format_id):
     format = content.format[format_id]
-    Log(format.url())
     return JSONEpisodeListContainer(title=format.title, url=format.url())
 
 ##########################################################################################
@@ -185,7 +184,6 @@ def ChannelHighlights(channel_id):
 def ScheduleForDay(channel_id, year, month, day):
     channel = content.tv_channels[channel_id]
     url = "%s/%s/%s/%s.json" % (channel.schedule_url, year, month, day)
-    Log.Info(url)
     return JSONScheduleListContainer(title=channel.title, url=url)
 
 ##########################################################################################
@@ -281,7 +279,6 @@ def JSONEpisodeListContainer(title, url):
 
 ##########################################################################################
 def JSONScheduleListContainer(title="", url=None):
-    Log.Info("JSON")
     # this function generates the schedule lists for today / yesterday etc. from a JSON feed
     jsonObj = JSON.ObjectFromURL(url)
     if jsonObj is None: return
@@ -349,7 +346,6 @@ def Search(query, search_url = BBC_SEARCH_URL, page_num = 1):
                 duration = int(progInfo['duration']) * 1000
                 title = progInfo['complete_title']
                 foundSubtitle = progInfo['masterbrand_title']
-                Log(progInfo['original_broadcast_datetime'])
                 broadcast_date = Datetime.ParseDate(progInfo['original_broadcast_datetime'].split("T")[0]).date() 
                 pid = progInfo['id']
                 short_synopsis = progInfo['short_synopsis']
