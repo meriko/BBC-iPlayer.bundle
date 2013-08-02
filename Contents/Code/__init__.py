@@ -51,7 +51,8 @@ def MainMenu():
     oc.add(DirectoryObject(key=Callback(Popular), title="Most Popular"))
     oc.add(DirectoryObject(key=Callback(Channels), title="Channels"))
     oc.add(DirectoryObject(key=Callback(Categories), title="Categories"))
-    oc.add(DirectoryObject(key=Callback(AtoZ), title="A-Z"))
+    oc.add(DirectoryObject(key=Callback(Formats), title="Formats"))
+    oc.add(DirectoryObject(key=Callback(AToZ), title="A-Z"))
     oc.add(InputDirectoryObject(key = Callback(Search), title="Search", prompt="Search")) 
 
     return oc
@@ -75,16 +76,24 @@ def Categories():
     return oc
     
 ##########################################################################################
-@route(PREFIX + "/AtoZ")
-def AtoZ():
+@route(PREFIX + "/Formats")
+def Formats():
+    oc = ObjectContainer(title2="Formats")
+    for format in content.formats:
+        oc.add(DirectoryObject(key=Callback(Format, format_id=format.id), title=format.title))
+    return oc
+    
+##########################################################################################
+@route(PREFIX + "/AToZ")
+def AToZ():
     oc = ObjectContainer(title2="A - Z")
-    for code in range(ord('a'), ord('z')):
+    for code in range(ord('a'), ord('z') + 1):
         letter = chr(code)
         oc.add(DirectoryObject(key=Callback(RSSListContainer, title=letter.upper(), url=BBC_FEED_URL + "/iplayer/atoz/%s/list" % letter), title=letter.upper()))
     return oc
 
 ##########################################################################################
-@route(PREFIX + "Category")
+@route(PREFIX + "/Category")
 def Category(category_id):
     category = content.category[category_id]
     oc = ObjectContainer(title1=category.title)
@@ -93,6 +102,13 @@ def Category(category_id):
     for subcategory in category.subcategories:
         oc.add(DirectoryObject(key=Callback(Subcategory, category_id=category_id, subcategory_id=subcategory.id), title=subcategory.title))
     return oc
+    
+##########################################################################################
+@route(PREFIX + "/Format")
+def Format(format_id):
+    format = content.format[format_id]
+    Log(format.url())
+    return JSONEpisodeListContainer(title=format.title, url=format.url())
 
 ##########################################################################################
 @route(PREFIX + "/CategoryHighlights")
@@ -232,6 +248,38 @@ def RSSListContainer(title="", url=None, sort=False, offset=0):
     return oc
 
 ##########################################################################################
+def JSONEpisodeListContainer(title, url):
+
+    # this function generates the category lists and format lists from a JSON feed
+
+    jsonObj = JSON.ObjectFromURL(url)
+    if jsonObj is None: return
+
+    oc = ObjectContainer(title1 = title)
+
+    episodes = jsonObj["episodes"]
+  
+    for programme in episodes:
+  
+        thisProgramme = programme["programme"]
+        displayTitles = thisProgramme["display_titles"]
+        title = displayTitles["title"]
+        foundSubtitle = displayTitles["subtitle"]
+        pid = thisProgramme["pid"]
+        short_synopsis = thisProgramme["short_synopsis"]
+
+        oc.add(EpisodeObject(url = config.BBC_SD_PLAYER_URL % pid, title = "%s - %s" % (title, foundSubtitle), summary = short_synopsis, thumb = config.BBC_SD_THUMB_URL % pid))
+
+    if len(oc) == 0:
+        oc.header  = title
+        oc.message = "No programmes found."
+        return oc
+
+    oc.objects.sort(key=lambda obj: obj.title)
+
+    return oc
+
+##########################################################################################
 def JSONScheduleListContainer(title="", url=None):
     Log.Info("JSON")
     # this function generates the schedule lists for today / yesterday etc. from a JSON feed
@@ -315,6 +363,6 @@ def Search(query, search_url = BBC_SEARCH_URL, page_num = 1):
     else:
         # See if we need a next button.
         if RE_SEARCH_NEXT.search(searchResults):
-            oc.add(NextPageObject(key=Callback(Search, query = query, search_url = search_url, page_num = page_num + 1), title='More...', thumb=R(ICON_SEARCH)))
+            oc.add(NextPageObject(key=Callback(Search, query = query, search_url = search_url, page_num = page_num + 1), title='More...'))
 
     return oc
