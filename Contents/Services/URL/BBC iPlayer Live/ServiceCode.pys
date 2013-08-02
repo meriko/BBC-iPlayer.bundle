@@ -1,7 +1,8 @@
-RE_ID = Regex('iplayer/tv/([^/]+)/watchlive')
+RE_ID_TV = Regex('iplayer/tv/([^/]+)/watchlive')
+RE_ID_RADIO = Regex('iplayer/radio/([^/]+)/listenlive')
 NAMESPACES = {'m': 'http://bbc.co.uk/2008/mp/mediaselection'}
 
-CHANNEL_LOOKUP = {
+TV_CHANNEL_LOOKUP = {
   "bbc_one_london": "bbc_one",
   "bbc_two_england": "bbc_two",
   "bbc_three": "bbc_three",
@@ -11,6 +12,21 @@ CHANNEL_LOOKUP = {
   "bbc_news24": "bbc_news24",
   "bbc_parliament": "bbc_parliament_1",
   "bbc_alba": "bbc_alba"
+}
+
+RADIO_CHANNEL_LOOKUP = {
+  "bbc_radio_one": "bbc_radio_one",  
+  "bbc_1xtra": "bbc_1xtra",
+  "bbc_radio_two": "bbc_radio_two",
+  "bbc_radio_three": "bbc_radio_three",
+  "bbc_radio_fourfm": "bbc_radio_four",
+  "bbc_radio_fourlw": "bbc_radio_four",
+  "bbc_radio_four_extra": "bbc_radio_four",
+  "bbc_radio_five_live": "bbc_radio_five_live",
+  "bbc_radio_five_live_sports_extra": "bbc_radio_five_live_sports_extra",
+  "bbc_6music": "bbc_6music",
+  "bbc_asian_network": "bbc_asian_network",
+  "bbc_world_service": "bbc_world_service"  
 }
 
 ####################################################################################################
@@ -30,8 +46,15 @@ def MetadataObjectForURL(url):
   if summary.endswith('('):
     summary = summary.rstrip('(').strip()
 
-  id = RE_ID.findall(url)[0]
-  thumb = "http://www.bbc.co.uk/iplayer/img/tv/%s.jpg" % CHANNEL_LOOKUP[id]
+  match = RE_ID_TV.findall(url)
+  if match:
+    id = match[0] 
+    thumb = "http://www.bbc.co.uk/iplayer/img/tv/%s.jpg" % TV_CHANNEL_LOOKUP[id]
+  else:
+    match = RE_ID_RADIO.findall(url)
+    if match:
+      id = match[0]
+      thumb = "http://www.bbc.co.uk/iplayer/img/radio/%s.gif" % RADIO_CHANNEL_LOOKUP[id]   
 
   return VideoClipObject(
     title = title,
@@ -68,7 +91,7 @@ def MediaObjectsForURL(url):
 def DetermineAvailableVideo(url, height):
 
   try:
-    id = RE_ID.findall(url)[0]
+    id = RE_ID_TV.findall(url)[0]
     media_selector_url = "http://www.bbc.co.uk/mediaselector/4/mtis/stream/%s" % id
     return IndirectResponse(VideoClipObject, key = Callback(PlayVideo, url = url, media_selector_url = media_selector_url, height = height, post_url = media_selector_url))
 
@@ -118,7 +141,7 @@ def PlayVideo(url, media_selector_url=None, height='720'):
     rtmp_url = 'rtmp://%s/%s?%s' % (server, application, auth)
 
     clip = "%s?%s" % (stream.get('identifier'), auth)
-    swf_url = 'http://www.bbc.co.uk/emp/10player.swf'
+    swf_url = 'http://www.bbc.co.uk/emp/releases/iplayer/revisions/617463_618125_4/617463_618125_4_emp.swf'
     return IndirectResponse(VideoClipObject, key = RTMPVideoURL(url = rtmp_url, clip = clip, swf_url = swf_url, live = True))
 
   except:

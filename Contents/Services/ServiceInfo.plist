@@ -13,6 +13,7 @@
 			<key>URLPatterns</key>
 			<array>
 				<string>http://www\.bbc\.co\.uk/iplayer/tv/.+/watchlive</string>
+				<string>http://www\.bbc\.co\.uk/iplayer/radio/.+/listenlive</string>
 			</array>
 		</dict>
 	</dict>
