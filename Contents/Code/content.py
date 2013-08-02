@@ -82,28 +82,28 @@ categories = [
 category = dict([(category.id, category) for category in categories])
 
 class Format(object):
-	def __init__(self, title):
-		self.title = title
-		self.id = slugify(title)
-	
-	def url(self):
-		return "http://www.bbc.co.uk/programmes/formats/%s/player/episodes.json" % self.id
+    def __init__(self, title):
+        self.title = title
+        self.id = slugify(title)
+
+    def url(self):
+        return "http://www.bbc.co.uk/programmes/formats/%s/player/episodes.json" % self.id
 
 formats = [
-	Format("Animation"),
-	Format("Appeals"),
-	Format("Bulletins"),
-	Format("Discussion & Talk"), 
-  	Format("Docudramas"), 
-  	Format("Documentaries"),
-  	Format("Films"),
-  	Format("Games & Quizzes"),
-  	Format("Magazines & Reviews"),
-  	Format("Makeovers"),
-  	Format("Performances & Events"),
-  	Format("Phone-ins"),
-  	Format("Readings"),
-  	Format("Reality"),
-  	Format("Talent Shows")
+    Format("Animation"),
+    Format("Appeals"),
+    Format("Bulletins"),
+    Format("Discussion & Talk"), 
+    Format("Docudramas"), 
+    Format("Documentaries"),
+    Format("Films"),
+    Format("Games & Quizzes"),
+    Format("Magazines & Reviews"),
+    Format("Makeovers"),
+    Format("Performances & Events"),
+    Format("Phone-ins"),
+    Format("Readings"),
+    Format("Reality"),
+    Format("Talent Shows")
 ]
 format = dict([(format.id, format) for format in formats])
