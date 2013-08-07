@@ -185,6 +185,7 @@ def TVChannels():
                         channel_id = channel_id
                     ),
                 title = channel.title,
+                summary = L(channel_id),
                 thumb = channel.thumb_url
             )
         )
