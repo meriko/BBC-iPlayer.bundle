@@ -533,7 +533,6 @@ def VideosFromRSS(title, url, sort = False, offset = 0):
     totalEntries = len(feed.entries)
 
     for entry in feed.entries:
-        Log(entry)
         counter = counter + 1
         
         if counter < offset + 1:
