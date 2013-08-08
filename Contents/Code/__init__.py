@@ -10,11 +10,11 @@ BBC_FEED_URL         = "http://feeds.bbc.co.uk"
 BBC_LIVE_TV_URL      = "%s/iplayer/tv/%%s/watchlive" % BBC_URL
 BBC_SEARCH_URL       = "%s/iplayer/search?q=%%s&page=%%s" % BBC_URL
 BBC_SEARCH_TV_URL    = BBC_SEARCH_URL + "&filter=tv"
-BBC_SEARCH_RADIO_URL = BBC_SEARCH_URL + "&filter=radio"
 
 RE_SEARCH      = Regex('episodeRegistry\\.addData\\((.*?)\\);', Regex.IGNORECASE | Regex.DOTALL)
 RE_ORDER       = Regex('class="cta-add-to-favourites" href="pid-(.*?)"')
 RE_SEARCH_NEXT = Regex('title="Next page"')
+RE_PID         = Regex('iplayer/episode/([^/$]{8})')
 
 ART_DEFAULT  = "art-default.jpg"
 ART_WALL     = "art-wall.jpg"
@@ -48,7 +48,7 @@ def Start():
 def MainMenu():
     oc = ObjectContainer()
     
-    title = "TV Highlights"
+    title = "Highlights"
     oc.add(
         DirectoryObject(
             key = 
@@ -61,20 +61,7 @@ def MainMenu():
         )
     )
     
-    title = "Radio Highlights"
-    oc.add(
-        DirectoryObject(
-            key = 
-                Callback(
-                    VideosFromRSS, 
-                    title = title, 
-                    url = BBC_FEED_URL + "/iplayer/highlights/radio"
-                ),
-            title = title
-        )
-    )
-    
-    title = "Most Popular TV"
+    title = "Most Popular"
     oc.add(
         DirectoryObject(
             key = 
@@ -87,31 +74,10 @@ def MainMenu():
         )
     )
     
-    title = "Most Popular Radio"
-    oc.add(
-        DirectoryObject(
-            key = 
-                Callback(
-                    VideosFromRSS,
-                    title = title,
-                    url = BBC_FEED_URL + "/iplayer/popular/radio"
-                ),
-            title = title
-        )
-    )
-    
     title = "TV Channels"
     oc.add(
         DirectoryObject(
             key = Callback(TVChannels),
-            title = title
-        )
-    )
-    
-    title = "Radio Stations"
-    oc.add(
-        DirectoryObject(
-            key = Callback(RadioStations), 
             title = title
         )
     )
@@ -135,34 +101,18 @@ def MainMenu():
     title = "A-Z"
     oc.add(
         DirectoryObject(
-            key = Callback(AToZChoice),
+            key = Callback(AToZ),
             title = title
         )
     )
     
-    title = "Search TV"
+    title = "Search"
     oc.add(
         InputDirectoryObject(
             key = 
-                Callback(
-                    Search, 
-                    search_url = BBC_SEARCH_TV_URL
-                ),
+                Callback(Search),
                 title = title, 
                 prompt = title
-        )
-    )
-    
-    title = "Search Radio"
-    oc.add(
-        InputDirectoryObject(
-            key = 
-                Callback(
-                    Search,
-                    search_url = BBC_SEARCH_RADIO_URL
-                ),
-            title = title,
-            prompt = title
         )
     )
 
@@ -181,34 +131,10 @@ def TVChannels():
                 key = 
                     Callback(
                         Channel, 
-                        tv = True,
                         channel_id = channel_id
                     ),
                 title = channel.title,
                 summary = L(channel_id),
-                thumb = channel.thumb_url
-            )
-        )
-        
-    return oc
-    
-##########################################################################################
-@route(PREFIX + "/RadioStations")
-def RadioStations():
-    oc = ObjectContainer(title2 = "Radio Stations")
-    
-    for channel_id in content.ordered_radio_channels:
-        channel = content.radio_channels[channel_id]
-    
-        oc.add(
-            DirectoryObject(
-                key = 
-                    Callback(
-                        Channel, 
-                        tv = False,
-                        channel_id = channel_id
-                    ),
-                title = channel.title, 
                 thumb = channel.thumb_url
             )
         )
@@ -257,25 +183,10 @@ def Formats(channel_id = None, thumb = None):
         )
         
     return oc
-
-##########################################################################################
-@route(PREFIX + "/AToZChoice")
-def AToZChoice():
-    oc = ObjectContainer(title2 = "A - Z")
-    
-    for choice in ['TV', 'Radio']:
-        oc.add(
-            DirectoryObject(
-                key = Callback(AToZ, suffix = choice.lower()),
-                title = choice
-            )
-        )
-    
-    return oc
     
 ##########################################################################################
 @route(PREFIX + "/AToZ")
-def AToZ(suffix):
+def AToZ():
     oc = ObjectContainer(title2 = "A - Z")
     
     for code in range(ord('a'), ord('z') + 1):
@@ -287,7 +198,7 @@ def AToZ(suffix):
                     Callback(
                         VideosFromRSS,
                         title = letter.upper(),
-                        url = BBC_FEED_URL + "/iplayer/atoz/%s/list/%s" % (letter, suffix)
+                        url = BBC_FEED_URL + "/iplayer/atoz/%s/list/tv" % letter
                     ), 
                 title = letter.upper()
             )
@@ -309,53 +220,27 @@ def Category(category_id, channel_id = None):
         )
         
     else:
-        title = "%s TV Highlights" % category.title
+        title = "%s Highlights" % category.title
         oc.add(
             DirectoryObject(
                 key = 
                     Callback(
                         VideosFromRSS, 
                         title = title,
-                        url = category.highlights_url(tv = True)
+                        url = category.highlights_url()
                     ),
                 title = title
             )
         )
         
-        title = "%s Radio Highlights" % category.title
-        oc.add(
-            DirectoryObject(
-                key = 
-                    Callback(
-                        VideosFromRSS,
-                        title = title,
-                        url = category.highlights_url(tv = False)
-                    ),
-                title = title,
-            )
-        )
-        
-        title = "Popular %s TV" % category.title
+        title = "%s Popular" % category.title
         oc.add(
             DirectoryObject(
                 key = 
                     Callback(
                         VideosFromRSS,
                         title = title, 
-                        url = category.popular_url(tv = True)
-                    ),
-                title = title
-            )
-        )
-        
-        title = "Popular %s Radio" % category.title
-        oc.add(
-            DirectoryObject(
-                key = 
-                    Callback(
-                        VideosFromRSS,
-                        title = title,
-                        url = category.popular_url(tv = False)
+                        url = category.popular_url()
                     ),
                 title = title
             )
@@ -368,35 +253,9 @@ def Category(category_id, channel_id = None):
                     Callback(
                         VideosFromJSONEpisodeList,
                         title = title, 
-                        url = category.genre_url(channel_id = "programmes")
-                    ),
-                title = title
-            )
-        )
-        
-        title = "TV programmes"
-        oc.add(
-            DirectoryObject(
-                key = 
-                    Callback(
-                        VideosFromJSONEpisodeList,
-                        title = title, 
                         url = category.genre_url(channel_id = "tv/programmes")
                     ),
                 title = title
-            )
-        )
-        
-        title = "Radio programmes"
-        oc.add( 
-            DirectoryObject(
-                key = 
-                    Callback(
-                        VideosFromJSONEpisodeList,
-                        title = title,
-                        url = category.genre_url(channel_id = "radio/programmes")
-                    ),
-                title = "Radio programmes"
             )
         )
         
@@ -417,21 +276,13 @@ def Category(category_id, channel_id = None):
     return oc
 
 ##########################################################################################
-@route(PREFIX + "/Channel", tv = bool)
-def Channel(tv, channel_id):
-    if tv:
-        channel = content.tv_channels[channel_id]
-    else:
-        channel = content.radio_channels[channel_id]
-   
-    oc = ObjectContainer(title1 = channel.title)
-    thumb = channel.thumb_url
+@route(PREFIX + "/Channel")
+def Channel(channel_id):
+    channel = content.tv_channels[channel_id]
 
-    #TODO, live broadcasts
-#    if channel.has_live_broadcasts():
-#        oc.add(
-#            VideoClipObject(url = channel.live_url(), title = "Live", thumb = thumb)
-#        )
+    oc = ObjectContainer(title1 = channel.title)
+
+    thumb = channel.thumb_url
 
     if channel.has_highlights():
         title = "Highlights"
@@ -542,8 +393,11 @@ def VideosFromRSS(title, url, sort = False, offset = 0):
             thumb_url = config.BBC_HD_THUMB_URL
         else:
             thumb_url = config.BBC_SD_THUMB_URL
-                
-        thumb = thumb_url % entry["link"].split("/")[-3]
+        
+        try:     
+            thumb = thumb_url % RE_PID.search(entry["link"]).groups()[0]
+        except:
+            thumb = None
 
         parts = entry["title"].split(": ")
 
@@ -708,10 +562,10 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
 
 ##########################################################################################
 @route(PREFIX + "/Search", page_num = int)
-def Search(query, search_url, page_num = 1):
+def Search(query, page_num = 1):
     oc = ObjectContainer(title1 = query)
     
-    searchResults = HTTP.Request(search_url % (String.Quote(query), page_num)).content
+    searchResults = HTTP.Request(BBC_SEARCH_TV_URL % (String.Quote(query), page_num)).content
 
     # Extract out JS object which contains program info.
     match = RE_SEARCH.search(searchResults)
@@ -761,7 +615,6 @@ def Search(query, search_url, page_num = 1):
                         Callback(
                             Search, 
                             query = query,
-                            search_url = search_url,
                             page_num = page_num + 1
                         ),
                     title = 'More...'
