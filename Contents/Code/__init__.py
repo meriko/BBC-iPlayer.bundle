@@ -473,7 +473,7 @@ def VideosFromJSONEpisodeList(title, url, channel_id = None):
         foundSubtitle  = displayTitles["subtitle"]
         
         if foundSubtitle:
-            title = title + " - " + foundSubtitle
+            title = title + " - " + str(foundSubtitle)
             
         pid            = thisProgramme["pid"]
         short_synopsis = thisProgramme["short_synopsis"]
@@ -539,7 +539,7 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
                 nowDate   = Datetime.Now()
                 if media["expires"] == None:
                     # use an expiry date in the distant future
-                    expiryDate = nowDate + timedelta(days = 1000)
+                    expiryDate = nowDate + Datetime.Delta(days = 1000)
                 else:
                     # FIXME: this should be GMT and pytz, but to compare dates we need
                     # to have both dates to be offset naive, or aware
