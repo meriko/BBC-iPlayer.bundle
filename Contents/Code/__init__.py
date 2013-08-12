@@ -5,46 +5,19 @@ import config
 TITLE  = "BBC iPlayer"
 PREFIX = "/video/iplayer"
 
-BBC_URL              = "http://www.bbc.co.uk"
-BBC_FEED_URL         = "http://feeds.bbc.co.uk"
-BBC_LIVE_TV_URL      = "%s/iplayer/tv/%%s/watchlive" % BBC_URL
-BBC_SEARCH_URL       = "%s/iplayer/search?q=%%s&page=%%s" % BBC_URL
-BBC_SEARCH_TV_URL    = BBC_SEARCH_URL + "&filter=tv"
-
-RE_SEARCH      = Regex('episodeRegistry\\.addData\\((.*?)\\);', Regex.IGNORECASE | Regex.DOTALL)
-RE_ORDER       = Regex('class="cta-add-to-favourites" href="pid-(.*?)"')
-RE_SEARCH_NEXT = Regex('title="Next page"')
-RE_PID         = Regex('iplayer/episode/([^/$]{8})')
-
-ART_DEFAULT  = "art-default.jpg"
-ART_WALL     = "art-wall.jpg"
-ICON_DEFAULT = "icon-default.png"
-ICON_SEARCH  = "icon-search.png"
-ICON_PREFS   = "icon-prefs.png"
-
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 MAX_RSS_ITEMS_PER_PAGE = 25
 
 ##########################################################################################
 def Start():
-    ObjectContainer.art    = R(ART_DEFAULT)
     ObjectContainer.title1 = TITLE
 
-    DirectoryObject.art   = R(ART_DEFAULT)
-    DirectoryObject.thumb = R(ICON_DEFAULT)
-
-    InputDirectoryObject.art   = R(ART_DEFAULT)
-    InputDirectoryObject.thumb = R(ICON_SEARCH)
-
-    PrefsObject.art   = R(ART_DEFAULT)
-    PrefsObject.thumb = R(ICON_PREFS)
-
-    HTTP.CacheTime             = CACHE_1HOUR
-    HTTP.Headers['User-agent'] = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.11) Gecko/20101012 Firefox/3.6.11"
+    HTTP.CacheTime = CACHE_1HOUR
+    HTTP.Headers['User-agent'] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:22.0) Gecko/20100101 Firefox/22.0"
 
 ##########################################################################################
-@handler(PREFIX, TITLE, art = ART_DEFAULT, thumb = ICON_DEFAULT)
+@handler(PREFIX, TITLE)
 def MainMenu():
     oc = ObjectContainer()
     
@@ -55,7 +28,7 @@ def MainMenu():
                 Callback(
                     VideosFromRSS, 
                     title = title, 
-                    url = BBC_FEED_URL + "/iplayer/highlights/tv"
+                    url = config.BBC_FEED_URL + "/iplayer/highlights/tv"
                 ), 
             title = title
         )
@@ -68,7 +41,7 @@ def MainMenu():
                 Callback(
                     VideosFromRSS,
                     title = title,
-                    url = BBC_FEED_URL + "/iplayer/popular/tv"
+                    url = config.BBC_FEED_URL + "/iplayer/popular/tv"
                 ),
             title = title
         )
@@ -135,7 +108,7 @@ def TVChannels():
                     ),
                 title = channel.title,
                 summary = L(channel_id),
-                thumb = channel.thumb_url
+                thumb = Resource.ContentsOfURLWithFallback(channel.thumb_url)
             )
         )
         
@@ -143,7 +116,7 @@ def TVChannels():
 
 ##########################################################################################
 @route(PREFIX + "/Categories")
-def Categories(channel_id = None, thumb = None):
+def Categories(channel_id = None, thumb = ''):
     oc = ObjectContainer(title2 = "Categories")
     
     for category in content.categories:
@@ -156,7 +129,7 @@ def Categories(channel_id = None, thumb = None):
                         channel_id = channel_id
                     ),
                 title = category.title,
-                thumb = thumb
+                thumb = Resource.ContentsOfURLWithFallback(thumb)
             )
         )
         
@@ -164,7 +137,7 @@ def Categories(channel_id = None, thumb = None):
     
 ##########################################################################################
 @route(PREFIX + "/Formats")
-def Formats(channel_id = None, thumb = None):
+def Formats(channel_id = None, thumb = ''):
     oc = ObjectContainer(title2 = "Formats")
     
     for format in content.formats:
@@ -178,7 +151,7 @@ def Formats(channel_id = None, thumb = None):
                         channel_id = channel_id
                     ),
                 title = format.title,
-                thumb = thumb
+                thumb = Resource.ContentsOfURLWithFallback(thumb)
             )
         )
         
@@ -198,7 +171,7 @@ def AToZ():
                     Callback(
                         VideosFromRSS,
                         title = letter.upper(),
-                        url = BBC_FEED_URL + "/iplayer/atoz/%s/list/tv" % letter
+                        url = config.BBC_FEED_URL + "/iplayer/atoz/%s/list/tv" % letter
                     ), 
                 title = letter.upper()
             )
@@ -290,7 +263,7 @@ def Channel(channel_id):
             DirectoryObject(
                 key = Callback(VideosFromRSS, title = title, url = channel.highlights_url()), 
                 title = title, 
-                thumb = thumb
+                thumb = Resource.ContentsOfURLWithFallback(thumb)
             )
         )
         
@@ -299,7 +272,7 @@ def Channel(channel_id):
             DirectoryObject(
                 key = Callback(VideosFromRSS, title = title, url = channel.popular_url()),
                 title = title,
-                thumb = thumb
+                thumb = Resource.ContentsOfURLWithFallback(thumb)
             )
         )
 
@@ -307,7 +280,7 @@ def Channel(channel_id):
         DirectoryObject(
             key = Callback(Categories, channel_id = channel_id, thumb = thumb), 
             title = "Categories", 
-            thumb = thumb
+            thumb = Resource.ContentsOfURLWithFallback(thumb)
         )
     )
 
@@ -315,7 +288,7 @@ def Channel(channel_id):
         DirectoryObject(
             key = Callback(Formats, channel_id = channel_id, thumb = thumb),
             title = "Formats",
-            thumb = thumb
+            thumb = Resource.ContentsOfURLWithFallback(thumb)
         )
     )
 
@@ -330,7 +303,7 @@ def Channel(channel_id):
                         url = channel.schedule_url + "today.json"
                     ),
                     title = "Today",
-                    thumb = thumb
+                    thumb = Resource.ContentsOfURLWithFallback(thumb)
             )
         )
         
@@ -343,7 +316,7 @@ def Channel(channel_id):
                         url = channel.schedule_url + "yesterday"
                     ),
                 title = "Yesterday",
-                thumb = thumb
+                thumb = Resource.ContentsOfURLWithFallback(thumb)
             )
         )
         
@@ -360,7 +333,7 @@ def Channel(channel_id):
                             url = "%s/%s/%s/%s.json" % (channel.schedule_url, date.year, date.month, date.day)
                         ),
                     title = DAYS[date.weekday()],
-                    thumb = thumb
+                    thumb = Resource.ContentsOfURLWithFallback(thumb)
                 )
             )
 
@@ -393,11 +366,11 @@ def VideosFromRSS(title, url, sort = False, offset = 0):
             thumb_url = config.BBC_HD_THUMB_URL
         else:
             thumb_url = config.BBC_SD_THUMB_URL
-        
+
         try:     
-            thumb = thumb_url % RE_PID.search(entry["link"]).groups()[0]
+            thumb = thumb_url % config.RE_PID.search(entry["link"]).groups()[0]
         except:
-            thumb = None
+            thumb = ''
 
         parts = entry["title"].split(": ")
 
@@ -415,7 +388,7 @@ def VideosFromRSS(title, url, sort = False, offset = 0):
                 url = entry["link"],
                 title = epTitle,
                 summary = summary,
-                thumb = thumb
+                thumb = Resource.ContentsOfURLWithFallback(thumb)
             )
         )
         
@@ -488,7 +461,7 @@ def VideosFromJSONEpisodeList(title, url, channel_id = None):
                 url = url, 
                 title = title,
                 summary = short_synopsis,
-                thumb = thumb
+                thumb = Resource.ContentsOfURLWithFallback(thumb)
             )
         )
 
@@ -554,7 +527,7 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
                     title = "%s %s" % (start, title),
                     summary = short_synopsis,
                     duration = duration,
-                    thumb = thumb_url % pid
+                    thumb = Resource.ContentsOfURLWithFallback(thumb_url % pid)
                 )
             )
             
@@ -568,7 +541,7 @@ def Search(query, page_num = 1):
     searchResults = HTTP.Request(BBC_SEARCH_TV_URL % (String.Quote(query), page_num)).content
 
     # Extract out JS object which contains program info.
-    match = RE_SEARCH.search(searchResults)
+    match = config.RE_SEARCH.search(searchResults)
 
     if match:
         jsonObj = JSON.ObjectFromString(match.group(1))
@@ -578,7 +551,7 @@ def Search(query, page_num = 1):
             # Try to extract out the order of the show out of the html as the JSON object is a dictionary keyed by PID which means 
             # the results order can't be guaranteed by just iterating through it.    
             epOrder = []
-            for match in RE_ORDER.finditer(searchResults):
+            for match in config.RE_ORDER.finditer(searchResults):
                 epOrder.append(match.group(1))
 
             eps.sort(key=lambda ep: (ep['id'] in epOrder and (epOrder.index(ep['id']) + 1)) or 1000)
@@ -600,7 +573,7 @@ def Search(query, page_num = 1):
                             summary = short_synopsis,
                             duration = duration,
                             originally_available_at = broadcast_date,
-                            thumb = config.BBC_SD_THUMB_URL % pid
+                            thumb = Resource.ContentsOfURLWithFallback(config.BBC_SD_THUMB_URL % pid)
                         )
                     ) 
 
@@ -608,7 +581,7 @@ def Search(query, page_num = 1):
         return NoProgrammesFound(oc, query)
     else:
         # See if we need a next button.
-        if RE_SEARCH_NEXT.search(searchResults):
+        if config.RE_SEARCH_NEXT.search(searchResults):
             oc.add(
                 NextPageObject(
                     key = 
