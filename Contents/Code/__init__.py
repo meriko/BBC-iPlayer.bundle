@@ -538,7 +538,7 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
 def Search(query, page_num = 1):
     oc = ObjectContainer(title1 = query)
     
-    searchResults = HTTP.Request(BBC_SEARCH_TV_URL % (String.Quote(query), page_num)).content
+    searchResults = HTTP.Request(config.BBC_SEARCH_TV_URL % (String.Quote(query), page_num)).content
 
     # Extract out JS object which contains program info.
     match = config.RE_SEARCH.search(searchResults)
@@ -557,7 +557,7 @@ def Search(query, page_num = 1):
             eps.sort(key=lambda ep: (ep['id'] in epOrder and (epOrder.index(ep['id']) + 1)) or 1000)
 
             for progInfo in eps:
-                url            = BBC_URL + progInfo['my_url']
+                url            = config.BBC_URL + progInfo['my_url']
                 duration       = int(progInfo['duration']) * 1000
                 title          = progInfo['complete_title']
                 foundSubtitle  = progInfo['masterbrand_title']
