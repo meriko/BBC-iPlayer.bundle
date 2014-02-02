@@ -28,6 +28,9 @@ class Channel(object):
     def has_live_broadcasts(self):
         return self.live_id != None
         
+    def has_scheduled_programmes(self):
+        return self.live_id != None
+        
     def live_url(self):
         return "http://www.bbc.co.uk/iplayer/tv/%s/watchlive" % self.live_id
 
