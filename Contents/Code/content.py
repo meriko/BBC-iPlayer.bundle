@@ -1,5 +1,3 @@
-from config import BBC_HD_PLAYER_URL, BBC_HD_THUMB_URL, BBC_SD_PLAYER_URL, BBC_SD_THUMB_URL 
-
 class Channel(object):
     def __init__(self, title, thumb, channel_id, region_id, live_id):
         self.title = title

@@ -399,16 +399,7 @@ def VideosFromRSS(title, url, sort = False, offset = 0):
         if counter < offset + 1:
             continue
         
-        if '/hd/' in entry["href"]:
-            thumb_url = config.BBC_HD_THUMB_URL
-        else:
-            thumb_url = config.BBC_SD_THUMB_URL
-
-        try:     
-            thumb = thumb_url % config.RE_PID.search(entry["link"]).groups()[0]
-        except:
-            thumb = ''
-
+        thumb = entry["media_thumbnail"][0]["url"].replace("150_84", "640_360")
         parts = entry["title"].split(": ")
 
         # This seems to strip out the year on some series
@@ -486,12 +477,11 @@ def VideosFromJSONEpisodeList(title, url, channel_id = None):
             title = title + " - " + str(foundSubtitle)
             
         pid            = thisProgramme["pid"]
-        short_synopsis = thisProgramme["short_synopsis"]
+        image_pid      = thisProgramme["image"]["pid"]
+        short_synopsis = thisProgramme["short_synopsis"] 
         
-        [player_url, thumb_url] = GetChannelURLs(channel_id)
-        
-        url   = player_url % pid
-        thumb = thumb_url % pid
+        url = GetPlayerURL(channel_id) % pid
+        thumb = config.BBC_THUMB_URL % (image_pid, pid)
 
         oc.add(
             EpisodeObject(
@@ -534,6 +524,7 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
         title          = displayTitles["title"]
         foundSubtitle  = displayTitles["subtitle"]
         pid            = thisProgramme["pid"]
+        image_pid      = thisProgramme["image"]["pid"]
         short_synopsis = thisProgramme["short_synopsis"]
       
         # assume unavailable unless we can find an expiry date of after now
@@ -556,15 +547,13 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
                     expiryDate = Datetime.ParseDate(media["expires"]).replace(tzinfo = None)
 
         if available and expiryDate > nowDate:
-            [player_url, thumb_url] = GetChannelURLs(channel_id)
-            
             oc.add(
                 EpisodeObject( 
-                    url = player_url % pid,
+                    url = GetPlayerURL(channel_id) % pid,
                     title = "%s %s" % (start, title),
                     summary = short_synopsis,
                     duration = duration,
-                    thumb = Resource.ContentsOfURLWithFallback(thumb_url % pid)
+                    thumb = Resource.ContentsOfURLWithFallback(config.BBC_THUMB_URL % (image_pid, pid))
                 )
             )
             
@@ -600,6 +589,7 @@ def Search(query, page_num = 1):
                 foundSubtitle  = progInfo['masterbrand_title']
                 broadcast_date = Datetime.ParseDate(progInfo['original_broadcast_datetime'].split("T")[0]).date() 
                 pid            = progInfo['id']
+                image_pid      = progInfo['image_pid']
                 short_synopsis = progInfo['short_synopsis']
     
                 if progInfo.has_key("availability") and progInfo["availability"] == 'CURRENT':
@@ -610,7 +600,7 @@ def Search(query, page_num = 1):
                             summary = short_synopsis,
                             duration = duration,
                             originally_available_at = broadcast_date,
-                            thumb = Resource.ContentsOfURLWithFallback(config.BBC_SD_THUMB_URL % pid)
+                            thumb = Resource.ContentsOfURLWithFallback(config.BBC_THUMB_URL % (image_pid, pid))
                         )
                     ) 
 
@@ -640,8 +630,8 @@ def NoProgrammesFound(oc, title):
     return oc
 
 ##########################################################################################    
-def GetChannelURLs(channel_id):
+def GetPlayerURL(channel_id):
     if channel_id and channel_id == 'bbchd':
-        return [config.BBC_HD_PLAYER_URL, config.BBC_HD_THUMB_URL]
+        return config.BBC_HD_PLAYER_URL
     else:
-        return [config.BBC_SD_PLAYER_URL, config.BBC_SD_THUMB_URL]
+        return config.BBC_SD_PLAYER_URL
