@@ -1,16 +1,16 @@
-RE_CHANNEL         = Regex('iplayer/tv/([^/]+)/watchlive')
+RE_CHANNEL         = Regex('iplayer/live/([^/]+)')
 MEDIA_SELECTOR_URL = 'http://www.bbc.co.uk/mediaselector/playlists/hls/mobile_wifi/ak/%s.m3u8'
 
 TV_CHANNEL_LOOKUP = {
-    "bbc_one_london": {"img_id" : "bbc_one", "live_id" : "bbc1"},
-    "bbc_two_england": {"img_id" : "bbc_two", "live_id" : "bbc2"},
-    "bbc_three": {"img_id" : "bbc_three", "live_id" : "bbc3"},
+    "bbcone": {"img_id" : "bbc_one", "live_id" : "bbc1"},
+    "bbctwo": {"img_id" : "bbc_two", "live_id" : "bbc2"},
+    "bbcthree": {"img_id" : "bbc_three", "live_id" : "bbc3"},
     "bbc_four": {"img_id" : "bbc_four", "live_id" : "bbc4"},
     "cbbc": {"img_id" : "cbbc", "live_id" : "cbbc"},
     "cbeebies": {"img_id" : "cbeebies_1", "live_id" : "cbeebies"},
-    "bbc_news24": {"img_id" : "bbc_news24", "live_id" : "news_ch"},
-    "bbc_parliament": {"img_id" : "bbc_parliament_1", "live_id" : "parliament"},
-    "bbc_alba": {"img_id" : "bbc_alba", "live_id" : "alba"}
+    "bbcnews": {"img_id" : "bbc_news24", "live_id" : "news_ch"},
+    "bbcparliament": {"img_id" : "bbc_parliament_1", "live_id" : "parliament"},
+    "bbcalba": {"img_id" : "bbc_alba", "live_id" : "alba"}
 }
 
 ##########################################################################################
@@ -19,26 +19,44 @@ def NormalizeURL(url):
 
 ##########################################################################################
 def MetadataObjectForURL(url):
-    page = HTML.ElementFromURL(url, cacheTime = 0)
-    on_air = page.xpath('//div[@id = "currently-on-air"]')[0]
+    element = HTML.ElementFromURL(url, cacheTime = 0)
 
-    title = on_air.xpath('.//h2[@class = "title"]/text()')[0]
+    for on_air_info in element.xpath("//*[@id = 'nownext']//*[@id = 'now']"):
+        try:
+            title = 'Live: ' + on_air_info.xpath(".//h2/text()")[0].strip()
+        except:
+            title = 'Live'
 
-    summary = on_air.xpath('.//div[contains(@class, "long-synopsis")]//text()')[0]
-    if summary.endswith('('):
-        summary = summary.rstrip('(').strip()
+        try:
+            time_info = on_air_info.xpath(".//*[@class = 'broadcast-time']//text()")[0].strip()
+        except:
+            time_info = ''
+            
+        try:
+            subtitle = on_air_info.xpath(".//*[contains(@class = 'subtitle')]//text()")[0].strip()
+        except:
+            subtitle = ''
+     
+        try:
+            description = on_air_info.xpath('.//*[contains(@class, "synopsis")]//text()')[0].strip()
+        except:
+            description = ''
 
-    thumb = None
-    match = RE_CHANNEL.findall(url)
-    if match:
-        channel = match[0] 
-        thumb = "http://www.bbc.co.uk/iplayer/img/tv/%s.jpg" % TV_CHANNEL_LOOKUP[channel]["img_id"] 
+        summary = time_info + '\r\n' + subtitle + '\r\n' + description
 
-    return VideoClipObject(
-        title = title,
-        summary = summary,
-        thumb = thumb
-    )
+        thumb = None
+        match = RE_CHANNEL.findall(url)
+        if match:
+            channel = match[0] 
+            thumb = "http://www.bbc.co.uk/iplayer/img/tv/%s.jpg" % TV_CHANNEL_LOOKUP[channel]["img_id"] 
+    
+        return VideoClipObject(
+            title = title,
+            summary = summary,
+            thumb = thumb
+        )
+        
+    return Ex.LiveMediaNotStarted
 
 ##########################################################################################
 def MediaObjectsForURL(url):

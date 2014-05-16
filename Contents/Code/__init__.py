@@ -258,41 +258,10 @@ def Channel(channel_id):
     thumb = channel.thumb_url
 
     if channel.has_live_broadcasts():
-        element = HTML.ElementFromURL(channel.live_url(), cacheTime = 0)
-        
-        for on_air_info in element.xpath("//*[@id = 'currently-on-air'][contains(@style, 'visible')]"):
-            try:
-                title = ' - ' + on_air_info.xpath(".//*[@class = 'title']//text()")[0].strip()
-            except:
-                title = ''
-
-            try:
-                time_info = on_air_info.xpath(".//*[@class = 'broadcast-time']//text()")[0].strip()
-            except:
-                time_info = ''
-                
-            try:
-                subtitle = on_air_info.xpath(".//*[@class = 'subtitle']//text()")[0].strip()
-            except:
-                subtitle = ''
-         
-            try:
-                description = on_air_info.xpath('.//*[contains(@class, "long-synopsis")]//text()')[0].strip()
-            except:
-                description = ''
-
-            summary = time_info + '\r\n\r\n' + subtitle + '\r\n\r\n' + description
-
-            oc.add(
-                VideoClipObject(
-                    url = channel.live_url(),
-                    title = "Live" + title,
-                    summary = summary.strip(),
-                    thumb = Resource.ContentsOfURLWithFallback(thumb)
-                )
-            )
-            
-            break
+        try:
+            oc.add(URLService.MetadataObjectForURL(channel.live_url()))
+        except:
+            pass # Live stream not currently available
 
     if channel.has_highlights():
         title = "Highlights"

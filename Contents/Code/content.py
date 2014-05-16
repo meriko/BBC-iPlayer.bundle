@@ -30,20 +30,20 @@ class Channel(object):
         return self.live_id != None
         
     def live_url(self):
-        return "http://www.bbc.co.uk/iplayer/tv/%s/watchlive" % self.live_id
+        return "http://www.bbc.co.uk/iplayer/live/%s" % self.channel_id
 
 tv_channels = {
-    #                           title                thumb               channel_id    region_id  live_id
-    'bbcone':           Channel('BBC One',           'bbc_one',          'bbcone',    'london',  'bbc_one_london'),
-    'bbctwo':           Channel('BBC Two',           'bbc_two',          'bbctwo',    'england', 'bbc_two_england'),
-    'bbcthree':         Channel('BBC Three',         'bbc_three',        'bbcthree',   None,     'bbc_three'),
-    'bbcfour':          Channel('BBC Four',          'bbc_four',         'bbcfour',    None,     'bbc_four'),
-    'cbbc':             Channel('CBBC',              'cbbc',             'cbbc',       None,     'cbbc'),
-    'cbeebies':         Channel('CBeebies',          'cbeebies_1',       'cbeebies',   None,     'cbeebies'),
-    'bbcnews':          Channel('BBC News Channel',  'bbc_news24',       'bbcnews',    None,     'bbc_news24'),
-    'parliament':       Channel('BBC Parliament',    'bbc_parliament_1', 'parliament', None,     'bbc_parliament'),
-    'bbchd':            Channel('BBC HD',            'bbc_hd_1',         'bbchd',      None,     None),
-    'bbcalba':          Channel('BBC Alba',          'bbc_alba',         'bbcalba',    None,     'bbc_alba')
+    #                           title                thumb               channel_id       region_id  live_id
+    'bbcone':           Channel('BBC One',           'bbc_one',          'bbcone',       'london',  'bbc_one_london'),
+    'bbctwo':           Channel('BBC Two',           'bbc_two',          'bbctwo',       'england', 'bbc_two_england'),
+    'bbcthree':         Channel('BBC Three',         'bbc_three',        'bbcthree',      None,     'bbc_three'),
+    'bbcfour':          Channel('BBC Four',          'bbc_four',         'bbcfour',       None,     'bbc_four'),
+    'cbbc':             Channel('CBBC',              'cbbc',             'cbbc',          None,     'cbbc'),
+    'cbeebies':         Channel('CBeebies',          'cbeebies_1',       'cbeebies',      None,     'cbeebies'),
+    'bbcnews':          Channel('BBC News Channel',  'bbc_news24',       'bbcnews',       None,     'bbc_news24'),
+    'parliament':       Channel('BBC Parliament',    'bbc_parliament_1', 'bbcparliament', None,     'bbc_parliament'),
+    'bbchd':            Channel('BBC HD',            'bbc_hd_1',         'bbchd',         None,     None),
+    'bbcalba':          Channel('BBC Alba',          'bbc_alba',         'bbcalba',       None,     'bbc_alba')
 }
 ordered_tv_channels = ['bbcone', 'bbctwo', 'bbcthree', 'bbcfour', 'cbbc', 'cbeebies', 'bbcnews', 'parliament', 'bbchd', 'bbcalba']
 
