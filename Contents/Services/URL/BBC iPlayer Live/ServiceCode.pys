@@ -1,5 +1,4 @@
-RE_CHANNEL         = Regex('iplayer/live/([^/]+)')
-MEDIA_SELECTOR_URL = 'http://www.bbc.co.uk/mediaselector/playlists/hls/mobile_wifi/ak/%s.m3u8'
+RE_CHANNEL = Regex('iplayer/live/([^/]+)')
 
 TV_CHANNEL_LOOKUP = {
     "bbcone": {"img_id" : "bbc_one", "live_id" : "bbc1"},
@@ -79,13 +78,16 @@ def MediaObjectsForURL(url):
 ##########################################################################################
 @indirect
 def PlayVideo(channel):
+    live_id = TV_CHANNEL_LOOKUP[channel]["live_id"]
+    base    = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGxzLyVzL2FrLyVzLm0zdTg=')
+
     try:
-        hls_url = MEDIA_SELECTOR_URL % TV_CHANNEL_LOOKUP[channel]["live_id"]
+        hls_url = base % (String.Decode('aGR0dg=='), live_id)
         headers = HTTP.Request(hls_url).headers
     except:
         raise Ex.MediaGeoblocked
-        
+
     return IndirectResponse(
         VideoClipObject,
-        key = HTTPLiveStreamURL(hls_url)
+        key = HTTPLiveStreamURL(url = hls_url)
     )
