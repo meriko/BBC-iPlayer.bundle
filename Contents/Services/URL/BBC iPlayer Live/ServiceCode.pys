@@ -71,7 +71,8 @@ def MediaObjectsForURL(url):
                     )
                 ],
                 video_resolution = 360,
-                audio_channels = 2
+                audio_channels = 2,
+                optimized_for_streaming = True
             )
         ]
 
