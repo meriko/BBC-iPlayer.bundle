@@ -446,7 +446,7 @@ def VideosFromJSONEpisodeList(title, url, channel_id = None):
             title = title + " - " + str(foundSubtitle)
             
         pid            = thisProgramme["pid"]
-        image_pid      = thisProgramme["image"]["pid"]
+        image_pid      = thisProgramme["image"]["pid"] if 'image' in thisProgramme else ''
         short_synopsis = thisProgramme["short_synopsis"] 
         
         url = GetPlayerURL(channel_id) % pid
@@ -493,7 +493,7 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
         title          = displayTitles["title"]
         foundSubtitle  = displayTitles["subtitle"]
         pid            = thisProgramme["pid"]
-        image_pid      = thisProgramme["image"]["pid"]
+        image_pid      = thisProgramme["image"]["pid"] if 'image' in thisProgramme else ''
         short_synopsis = thisProgramme["short_synopsis"]
       
         # assume unavailable unless we can find an expiry date of after now
