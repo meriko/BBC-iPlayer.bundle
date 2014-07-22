@@ -5,9 +5,9 @@ class Channel(object):
         self.channel_id = channel_id
         self.live_id = live_id
 
-        self.schedule_url = "http://www.bbc.co.uk/%s/programmes/schedules/" % (self.channel_id)
+        self.schedule_url = "http://www.bbc.co.uk/%s/programmes/schedules" % (self.channel_id)
         if region_id:
-            self.schedule_url = self.schedule_url + region_id + "/"
+            self.schedule_url = self.schedule_url + "/" + region_id
 
         thumb_url = """http://www.bbc.co.uk/iplayer/img/tv/%s.jpg"""
             

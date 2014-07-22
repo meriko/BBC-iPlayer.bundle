@@ -4,7 +4,7 @@ TV_CHANNEL_LOOKUP = {
     "bbcone": {"img_id" : "bbc_one", "live_id" : "bbc1"},
     "bbctwo": {"img_id" : "bbc_two", "live_id" : "bbc2"},
     "bbcthree": {"img_id" : "bbc_three", "live_id" : "bbc3"},
-    "bbc_four": {"img_id" : "bbc_four", "live_id" : "bbc4"},
+    "bbcfour": {"img_id" : "bbc_four", "live_id" : "bbc4"},
     "cbbc": {"img_id" : "cbbc", "live_id" : "cbbc"},
     "cbeebies": {"img_id" : "cbeebies_1", "live_id" : "cbeebies"},
     "bbcnews": {"img_id" : "bbc_news24", "live_id" : "news_ch"},

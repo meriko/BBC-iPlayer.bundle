@@ -306,7 +306,7 @@ def Channel(channel_id):
                     Callback(
                         VideosFromJSONScheduleList,
                         title = channel.title,
-                        url = channel.schedule_url + "today.json"
+                        url = channel.schedule_url + "/today.json"
                     ),
                     title = "Today",
                     thumb = Resource.ContentsOfURLWithFallback(thumb)
@@ -319,7 +319,7 @@ def Channel(channel_id):
                     Callback(
                         VideosFromJSONScheduleList,
                         title = channel.title,
-                        url = channel.schedule_url + "yesterday.json"
+                        url = channel.schedule_url + "/yesterday.json"
                     ),
                 title = "Yesterday",
                 thumb = Resource.ContentsOfURLWithFallback(thumb)
