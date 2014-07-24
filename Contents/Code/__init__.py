@@ -529,69 +529,124 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
     return oc
 
 ##########################################################################################
-@route(PREFIX + "/Search", page_num = int)
-def Search(query, page_num = 1):
-    oc = ObjectContainer(title1 = query)
+@route(PREFIX + "/Search")
+def Search(query):
+    searchURL = config.BBC_SEARCH_TV_URL % String.Quote(query)
     
-    searchResults = HTTP.Request(config.BBC_SEARCH_TV_URL % (String.Quote(query), page_num)).content
+    return SearchResults(title = query, url = searchURL)
 
-    # Extract out JS object which contains program info.
-    match = config.RE_SEARCH.search(searchResults)
+##########################################################################################
+@route(PREFIX + "/SearchResults", page_num = int)
+def SearchResults(title, url, page_num = 1):
+    oc = ObjectContainer(title2 = title)
 
-    if match:
-        jsonObj = JSON.ObjectFromString(match.group(1))
-        if jsonObj:
-            eps = jsonObj.values()
-
-            # Try to extract out the order of the show out of the html as the JSON object is a dictionary keyed by PID which means 
-            # the results order can't be guaranteed by just iterating through it.    
-            epOrder = []
-            for match in config.RE_ORDER.finditer(searchResults):
-                epOrder.append(match.group(1))
-
-            eps.sort(key=lambda ep: (ep['id'] in epOrder and (epOrder.index(ep['id']) + 1)) or 1000)
-
-            for progInfo in eps:
-                url            = config.BBC_URL + progInfo['my_url']
-                duration       = int(progInfo['duration']) * 1000
-                title          = progInfo['complete_title']
-                foundSubtitle  = progInfo['masterbrand_title']
-                broadcast_date = Datetime.ParseDate(progInfo['original_broadcast_datetime'].split("T")[0]).date() 
-                pid            = progInfo['id']
-                image_pid      = progInfo['image_pid']
-                short_synopsis = progInfo['short_synopsis']
+    orgURL = url
     
-                if progInfo.has_key("availability") and progInfo["availability"] == 'CURRENT':
-                    oc.add(
-                        EpisodeObject(
-                            url = url,
-                            title = title,
-                            summary = short_synopsis,
-                            duration = duration,
-                            originally_available_at = broadcast_date,
-                            thumb = Resource.ContentsOfURLWithFallback(config.BBC_THUMB_URL % (image_pid, pid))
-                        )
-                    ) 
+    if not '?' in url:
+        url = url + "?"
+    else:
+        url = url + "&"
+    
+    pageElement = HTML.ElementFromURL(url + "page=%s" % page_num)
+    
+    for item in pageElement.xpath("//*[contains(@class,'iplayer-list')]//*[contains(@class,'list-item')]"):
+        try:
+            url = item.xpath(".//a/@href")[0]
+            
+            if not url.startswith('http'):
+                url = config.BBC_URL + url
+        except:
+            continue
+        
+        try:
+            title = item.xpath(".//a/@title")[0]
+        except:
+            continue
+            
+        try:
+            thumb = item.xpath(".//*[@class='r-image']/@data-ip-src")[0]
+        except:
+            thumb = None
+            
+        try:
+            summary = item.xpath(".//*[@class='synopsis']/text()")[0].strip()
+        except:
+            summary = None
+            
+        try:
+            broadcast_date = item.xpath(".//*[@class='release']/text()")[0].strip().split("First shown: ")[1]
+            originally_available_at = Datetime.ParseDate(broadcast_date).date()
+        except:
+            originally_available_at = None
+        
+        # Check if a link to more episodes exists
+        link = item.xpath(".//*[@class='view-more-container stat']/@href")
+        
+        if len(link) == 1:
+            link = link[0]
+            
+            if not link.startswith("http"):
+                link = config.BBC_URL + link
+            
+            try:
+                newTitle = title.split(",")[0]
+                
+                try:
+                    noEpisodes = item.xpath(".//em/text()")[0].strip()
+                    
+                    newTitle = newTitle + ': %s episodes' % noEpisodes
+                except:
+                    pass
+            except:
+                pass
+                
+            
+            
+            oc.add(
+                DirectoryObject(
+                    key =
+                        Callback(
+                            SearchResults,
+                            title = newTitle,
+                            url = link
+                        ),
+                    title = newTitle,
+                    thumb = Resource.ContentsOfURLWithFallback(thumb)
+                )
+            )
+        
+        else:
+            oc.add(
+                EpisodeObject(
+                    url = url,
+                    title = title,
+                    thumb = Resource.ContentsOfURLWithFallback(thumb),
+                    summary = summary,
+                    originally_available_at = originally_available_at
+                )
+            )
 
     if len(oc) < 1:
-        return NoProgrammesFound(oc, query)
+        return NoProgrammesFound(oc, title)
     else:
         # See if we need a next button.
-        if config.RE_SEARCH_NEXT.search(searchResults):
+        if len(pageElement.xpath("//*[@class='next txt']")) > 0:
             oc.add(
                 NextPageObject(
                     key = 
                         Callback(
-                            Search, 
-                            query = query,
+                            SearchResults, 
+                            title = title,
+                            url = orgURL,
                             page_num = page_num + 1
                         ),
                     title = 'More...'
                 )
             )
 
-    return oc
-    
+    return oc    
+
+ 
 ##########################################################################################
 def NoProgrammesFound(oc, title):
     oc.header  = title
