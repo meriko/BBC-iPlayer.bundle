@@ -552,7 +552,10 @@ def SearchResults(title, url, page_num = 1):
     for item in pageElement.xpath("//*[contains(@class,'iplayer-list')]//*[contains(@class,'list-item')]"):
         try:
             url = item.xpath(".//a/@href")[0]
-            
+
+            if not '/episode/' in url:
+                continue
+
             if not url.startswith('http'):
                 url = config.BBC_URL + url
         except:
