@@ -1,10 +1,10 @@
 import content
+import config
 
 TITLE  = "BBC iPlayer"
 PREFIX = "/video/iplayer"
 
 BASE_URL = 'http://www.bbc.co.uk'
-IMAGE_URL = 'http://ichef.bbci.co.uk/images/ic/640x360/%s.jpg'
 
 RE_EPISODE = Regex("Episode ([0-9]+)")
 RE_SERIES = Regex("Series ([0-9]+)")
@@ -82,6 +82,16 @@ def MainMenu():
                     url = BASE_URL + '/iplayer/a-z/'
                 ),
             title = title
+        )
+    )
+    
+    title = "Search"
+    oc.add(
+        InputDirectoryObject(
+            key = 
+                Callback(Search),
+                title = title, 
+                prompt = title
         )
     )
     
@@ -374,6 +384,134 @@ def Programs(title, url):
         
         return oc
 
+##########################################################################################
+@route(PREFIX + "/Search")
+def Search(query):
+    searchURL = config.BBC_SEARCH_TV_URL % String.Quote(query)
+    
+    return SearchResults(title = query, url = searchURL)
+
+##########################################################################################
+@route(PREFIX + "/SearchResults", page_num = int)
+def SearchResults(title, url, page_num = 1):
+    oc = ObjectContainer(title2 = title)
+
+    orgURL = url
+    
+    if not '?' in url:
+        url = url + "?"
+    else:
+        url = url + "&"
+    
+    pageElement = HTML.ElementFromURL(url + "page=%s" % page_num)
+    
+    for item in pageElement.xpath("//*[contains(@class,'iplayer-list')]//*[contains(@class,'list-item')]"):
+        try:
+            url = item.xpath(".//a/@href")[0]
+
+            if not '/episode/' in url:
+                continue
+
+            if not url.startswith('http'):
+                url = config.BBC_URL + url
+        except:
+            continue
+        
+        try:
+            title = item.xpath(".//a/@title")[0]
+        except:
+            continue
+            
+        try:
+            thumb = item.xpath(".//*[@class='r-image']/@data-ip-src")[0]
+        except:
+            thumb = None
+            
+        try:
+            summary = item.xpath(".//*[@class='synopsis']/text()")[0].strip()
+        except:
+            summary = None
+            
+        try:
+            broadcast_date = item.xpath(".//*[@class='release']/text()")[0].strip().split("First shown: ")[1]
+            originally_available_at = Datetime.ParseDate(broadcast_date).date()
+        except:
+            originally_available_at = None
+        
+        # Check if a link to more episodes exists
+        link = item.xpath(".//*[@class='view-more-container stat']/@href")
+        
+        if len(link) == 1:
+            link = link[0]
+            
+            if not link.startswith("http"):
+                link = config.BBC_URL + link
+            
+            try:
+                newTitle = title.split(",")[0]
+                
+                try:
+                    noEpisodes = item.xpath(".//em/text()")[0].strip()
+                    
+                    newTitle = newTitle + ': %s episodes' % noEpisodes
+                except:
+                    pass
+            except:
+                pass
+                
+            
+            
+            oc.add(
+                DirectoryObject(
+                    key =
+                        Callback(
+                            SearchResults,
+                            title = newTitle,
+                            url = link
+                        ),
+                    title = newTitle,
+                    thumb = Resource.ContentsOfURLWithFallback(thumb)
+                )
+            )
+        
+        else:
+            oc.add(
+                EpisodeObject(
+                    url = url,
+                    title = title,
+                    thumb = Resource.ContentsOfURLWithFallback(thumb),
+                    summary = summary,
+                    originally_available_at = originally_available_at
+                )
+            )
+
+    if len(oc) < 1:
+        return NoProgrammesFound(oc, title)
+    else:
+        # See if we need a next button.
+        if len(pageElement.xpath("//*[@class='next txt']")) > 0:
+            oc.add(
+                NextPageObject(
+                    key = 
+                        Callback(
+                            SearchResults, 
+                            title = title,
+                            url = orgURL,
+                            page_num = page_num + 1
+                        ),
+                    title = 'More...'
+                )
+            )
+
+    return oc    
+
+ 
+##########################################################################################
+def NoProgrammesFound(oc, title):
+    oc.header  = title
+    oc.message = "No programmes found."
+    return oc
+    
     
 
   
