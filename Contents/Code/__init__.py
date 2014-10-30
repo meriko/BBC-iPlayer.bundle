@@ -136,14 +136,10 @@ def Channel(channel_id):
             pass # Live stream not currently available
 
     if channel.has_highlights():
-        title = "Highlights"
-        oc.add(
-            DirectoryObject(
-                key = Callback(Highlights, title = title, url = BASE_URL + '/%s' % channel_id), 
-                title = title, 
-                thumb = Resource.ContentsOfURLWithFallback(thumb)
-            )
-        )
+        highlights_oc = Highlights(title = "Highlights", url = channel.highlights_url())
+        
+        for object in highlights_oc.objects:
+            oc.add(object)
         
     return oc
 
@@ -153,7 +149,7 @@ def Highlights(title, url):
     oc = ObjectContainer(title2 = title)
     
     pageElement = HTML.ElementFromURL(url)
-    items = pageElement.xpath("//*[contains(@class, 'stream-list')]/*[contains(@class, 'stream-item-editorial-promo')]")
+    items = pageElement.xpath("//*[contains(@class, 'stream-list')]//*[contains(@class, 'stream-item-editorial-promo')]")
     
     return Episodes(oc, items)
 
