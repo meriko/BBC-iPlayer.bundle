@@ -4,8 +4,6 @@ import config
 TITLE  = "BBC iPlayer"
 PREFIX = "/video/iplayer"
 
-BASE_URL = 'http://www.bbc.co.uk'
-
 RE_EPISODE = Regex("Episode ([0-9]+)")
 RE_SERIES = Regex("Series ([0-9]+)")
 RE_DURATION = Regex("([0-9]+) *(mins)*")
@@ -29,7 +27,7 @@ def MainMenu():
                 Callback(
                     Highlights,
                     title = title,
-                    url = BASE_URL + '/iplayer'
+                    url = config.BBC_URL + '/iplayer'
                 ),
             title = title
         )
@@ -42,7 +40,7 @@ def MainMenu():
                 Callback(
                     MostPopular,
                     title = title,
-                    url = BASE_URL + '/iplayer/group/most-popular'
+                    url = config.BBC_URL + '/iplayer/group/most-popular'
                 ),
             title = title
         )
@@ -79,7 +77,7 @@ def MainMenu():
                 Callback(
                     AToZ,
                     title = title,
-                    url = BASE_URL + '/iplayer/a-z/'
+                    url = config.BBC_URL + '/iplayer/a-z/'
                 ),
             title = title
         )
@@ -145,82 +143,20 @@ def Channel(channel_id):
 
 ##########################################################################################
 @route(PREFIX + '/highlights')
-def Highlights(title, url):
-    oc = ObjectContainer(title2 = title)
-    
-    pageElement = HTML.ElementFromURL(url)
-    items = pageElement.xpath("//*[contains(@class, 'stream-list')]//*[contains(@class, 'stream-item-editorial-promo')]")
-    
-    return Episodes(oc, items)
+def Highlights(title, url):    
+    return Episodes(title, url, "//*[contains(@class, 'stream-list')]//*[contains(@class, 'stream-item-editorial-promo')]")
 
 ##########################################################################################
 @route(PREFIX + '/mostpopular')
 def MostPopular(title, url):
-    oc = ObjectContainer(title2 = title)
-    
-    pageElement = HTML.ElementFromURL(url)
-    items = pageElement.xpath("//*[contains(@class, 'iplayer-list')]/*[contains(@class, 'list-item')]")
-    
-    return Episodes(oc, items)
-
-##########################################################################################
-def Episodes(oc, items):
-    for item in items:
-        url = item.xpath(".//a/@href")[0]
-        
-        if not url.startswith("http"):
-            url = BASE_URL + url
-            
-        title = item.xpath(".//a/@title")[0]
-        
-        try:
-            index = int(RE_EPISODE.search(title).groups()[0])
-        except:
-            index = None
-            
-        try:
-            season = int(RE_SERIES.search(title).groups()[0])
-        except:
-            season = None
-            
-        thumb = item.xpath(".//img/@src")[1]
-        summary = ''.join(item.xpath(".//*[@class='synopsis']//text()")).strip()
-        
-        try:
-            originally_available_at = Datetime.ParseDate(item.xpath(".//*[@class='release']/text()")[0].split(":")[1].strip()).date()
-        except:
-            originally_available_at = None
-            
-        try:
-            duration = int(RE_DURATION.search(''.join(item.xpath(".//*[@class='duration']/text()"))).groups()[0]) * 60 * 1000
-        except:
-            duration = None
-        
-        oc.add(
-            EpisodeObject(
-                url = url,
-                title = title,
-                index = index,
-                season = season,
-                thumb = Resource.ContentsOfURLWithFallback(thumb),
-                summary = summary,
-                originally_available_at = originally_available_at,
-                duration = duration
-            )
-        )
-    
-    if len(oc) < 1:
-        oc.header = "Sorry"
-        oc.message = "Could not find any content"
-    
-    return oc
+    return Episodes(title, url, "//*[contains(@class, 'iplayer-list')]/*[contains(@class, 'list-item')]")
 
 ##########################################################################################
 @route(PREFIX + '/categories')
 def Categories(title):
     oc = ObjectContainer(title2 = title)
     
-    pageElement = HTML.ElementFromURL(BASE_URL + '/iplayer')
+    pageElement = HTML.ElementFromURL(config.BBC_URL + '/iplayer')
     
     for item in pageElement.xpath("//*[@class='categories-container']//a[@class='stat']"): 
         url = item.xpath("./@href")[0]
@@ -229,7 +165,7 @@ def Categories(title):
             continue
         
         if not url.startswith("http"):
-            url = BASE_URL + url
+            url = config.BBC_URL + url
             
         title = item.xpath("./text()")[0].strip()
         
@@ -283,7 +219,7 @@ def ProgramsByLetter(url, letter):
             continue
         
         if not url.startswith("http"):
-            url = BASE_URL + url
+            url = config.BBC_URL + url
             
         title = item.xpath(".//*[@class='title']/text()")[0].strip()
         
@@ -309,7 +245,7 @@ def Programs(title, url):
     brand = url.split("/")[-1]
     
     try:
-        pageElement = HTML.ElementFromURL(BASE_URL + '/programmes/%s/episodes/player' % brand)
+        pageElement = HTML.ElementFromURL(config.BBC_URL + '/programmes/%s/episodes/player' % brand)
     except:
         pageElement = None
     
@@ -318,7 +254,7 @@ def Programs(title, url):
             url = item.xpath(".//*[@property='video']/a/@resource")[0]
             
             if not url.startswith("http"):
-                url = BASE_URL + url
+                url = config.BBC_URL + url
                 
             title = item.xpath(".//*[contains(@class, 'programme__title')]//*[@property='name']/text()")[0].strip()
             thumb = item.xpath(".//meta[@property='image']/@content")[0]
@@ -383,25 +319,33 @@ def Programs(title, url):
 ##########################################################################################
 @route(PREFIX + "/Search")
 def Search(query):
-    searchURL = config.BBC_SEARCH_TV_URL % String.Quote(query)
+    url = config.BBC_SEARCH_TV_URL % String.Quote(query)
     
-    return SearchResults(title = query, url = searchURL)
-
+    return Episodes(
+        title = query,
+        url = url,
+        xpath = "//*[contains(@class,'iplayer-list')]//*[contains(@class,'list-item')]",
+        page_num = 1
+    )
+ 
 ##########################################################################################
-@route(PREFIX + "/SearchResults", page_num = int)
-def SearchResults(title, url, page_num = 1):
+@route(PREFIX + '/episodes', page_num = int)
+def Episodes(title, url, xpath, page_num = None):
     oc = ObjectContainer(title2 = title)
-
     orgURL = url
     
-    if not '?' in url:
-        url = url + "?"
-    else:
-        url = url + "&"
-    
-    pageElement = HTML.ElementFromURL(url + "page=%s" % page_num)
-    
-    for item in pageElement.xpath("//*[contains(@class,'iplayer-list')]//*[contains(@class,'list-item')]"):
+    if page_num is not None:
+        if not '?' in url:
+            url = url + "?"
+        else:
+            url = url + "&"
+            
+        url = url + "page=%s" % page_num
+        
+    pageElement = HTML.ElementFromURL(url)
+    items = pageElement.xpath(xpath)
+
+    for item in items:
         try:
             url = item.xpath(".//a/@href")[0]
 
@@ -417,6 +361,16 @@ def SearchResults(title, url, page_num = 1):
             title = item.xpath(".//a/@title")[0]
         except:
             continue
+
+        try:
+            index = int(RE_EPISODE.search(title).groups()[0])
+        except:
+            index = None
+            
+        try:
+            season = int(RE_SERIES.search(title).groups()[0])
+        except:
+            season = None
             
         try:
             thumb = item.xpath(".//*[@class='r-image']/@data-ip-src")[0]
@@ -429,10 +383,14 @@ def SearchResults(title, url, page_num = 1):
             summary = None
             
         try:
-            broadcast_date = item.xpath(".//*[@class='release']/text()")[0].strip().split("First shown: ")[1]
-            originally_available_at = Datetime.ParseDate(broadcast_date).date()
+            originally_available_at = Datetime.ParseDate(item.xpath(".//*[@class='release']/text()")[0].split(":")[1].strip()).date()
         except:
             originally_available_at = None
+            
+        try:
+            duration = int(RE_DURATION.search(''.join(item.xpath(".//*[@class='duration']/text()"))).groups()[0]) * 60 * 1000
+        except:
+            duration = None
         
         # Check if a link to more episodes exists
         link = item.xpath(".//*[@class='view-more-container stat']/@href")
@@ -454,16 +412,16 @@ def SearchResults(title, url, page_num = 1):
                     pass
             except:
                 pass
-                
-            
             
             oc.add(
                 DirectoryObject(
                     key =
                         Callback(
-                            SearchResults,
+                            Episodes,
                             title = newTitle,
-                            url = link
+                            url = link,
+                            xpath = xpath,
+                            page_num = page_num
                         ),
                     title = newTitle,
                     thumb = Resource.ContentsOfURLWithFallback(thumb)
@@ -475,33 +433,37 @@ def SearchResults(title, url, page_num = 1):
                 EpisodeObject(
                     url = url,
                     title = title,
+                    index = index,
+                    season = season,
                     thumb = Resource.ContentsOfURLWithFallback(thumb),
                     summary = summary,
-                    originally_available_at = originally_available_at
+                    originally_available_at = originally_available_at,
+                    duration = duration
                 )
             )
 
     if len(oc) < 1:
         return NoProgrammesFound(oc, title)
-    else:
+
+    elif page_num is not None:
         # See if we need a next button.
-        if len(pageElement.xpath("//*[@class='next txt']")) > 0:
+        if len(pageElement.xpath("//*[@class='next txt']")) > 0:            
             oc.add(
                 NextPageObject(
                     key = 
                         Callback(
-                            SearchResults, 
-                            title = title,
+                            Episodes,
+                            title = oc.title2, 
                             url = orgURL,
-                            page_num = page_num + 1
+                            xpath = xpath,
+                            page_num = int(page_num) + 1
                         ),
                     title = 'More...'
                 )
             )
+        
+    return oc
 
-    return oc    
-
- 
 ##########################################################################################
 def NoProgrammesFound(oc, title):
     oc.header  = title
