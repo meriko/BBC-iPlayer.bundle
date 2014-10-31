@@ -18,7 +18,12 @@ class Channel(object):
         return True
 
     def highlights_url(self):
-        return "http://feeds.bbc.co.uk/iplayer/%s/highlights" % self.channel_id
+        base = "http://www.bbc.co.uk/"
+        
+        if not self.channel_id in ['bbcparliament']:
+            base = base + 'tv/'
+            
+        return base + "%s" % self.channel_id
 
     def popular_url(self):
         return "http://feeds.bbc.co.uk/iplayer/%s/popular" % self.channel_id
@@ -42,10 +47,9 @@ tv_channels = {
     'cbeebies':         Channel('CBeebies',          'cbeebies_1',       'cbeebies',      None,     'cbeebies'),
     'bbcnews':          Channel('BBC News Channel',  'bbc_news24',       'bbcnews',       None,     'bbc_news24'),
     'parliament':       Channel('BBC Parliament',    'bbc_parliament_1', 'bbcparliament', None,     'bbc_parliament'),
-    'bbchd':            Channel('BBC HD',            'bbc_hd_1',         'bbchd',         None,     None),
     'bbcalba':          Channel('BBC Alba',          'bbc_alba',         'bbcalba',       None,     'bbc_alba')
 }
-ordered_tv_channels = ['bbcone', 'bbctwo', 'bbcthree', 'bbcfour', 'cbbc', 'cbeebies', 'bbcnews', 'parliament', 'bbchd', 'bbcalba']
+ordered_tv_channels = ['bbcone', 'bbctwo', 'bbcthree', 'bbcfour', 'cbbc', 'cbeebies', 'bbcnews', 'parliament', 'bbcalba']
 
 def slugify(string):
     slug = string.lower()
