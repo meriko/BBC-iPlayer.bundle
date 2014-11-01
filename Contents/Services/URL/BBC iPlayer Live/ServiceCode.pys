@@ -1,15 +1,15 @@
 RE_CHANNEL = Regex('iplayer/live/([^/]+)')
 
 TV_CHANNEL_LOOKUP = {
-    "bbcone": {"img_id" : "bbc_one", "live_id" : "bbc1"},
-    "bbctwo": {"img_id" : "bbc_two", "live_id" : "bbc2"},
-    "bbcthree": {"img_id" : "bbc_three", "live_id" : "bbc3"},
-    "bbcfour": {"img_id" : "bbc_four", "live_id" : "bbc4"},
-    "cbbc": {"img_id" : "cbbc", "live_id" : "cbbc"},
-    "cbeebies": {"img_id" : "cbeebies_1", "live_id" : "cbeebies"},
-    "bbcnews": {"img_id" : "bbc_news24", "live_id" : "news_ch"},
-    "bbcparliament": {"img_id" : "bbc_parliament_1", "live_id" : "parliament"},
-    "bbcalba": {"img_id" : "bbc_alba", "live_id" : "alba"}
+    "bbcone": {"live_id" : "bbc1"},
+    "bbctwo": {"live_id" : "bbc2"},
+    "bbcthree": {"live_id" : "bbc3"},
+    "bbcfour": {"live_id" : "bbc4"},
+    "cbbc": {"live_id" : "cbbc"},
+    "cbeebies": {"live_id" : "cbeebies"},
+    "bbcnews": {"live_id" : "news_ch"},
+    "bbcparliament": {"live_id" : "parliament"},
+    "bbcalba": {"live_id" : "alba"}
 }
 
 ##########################################################################################
@@ -22,7 +22,7 @@ def MetadataObjectForURL(url):
 
     for on_air_info in element.xpath("//*[@id = 'nownext']//*[@id = 'now']"):
         try:
-            title = 'Live: ' + on_air_info.xpath(".//h2/text()")[0].strip()
+            title = 'Live: ' + ''.join(on_air_info.xpath(".//h2/text()")).strip()
         except:
             title = 'Live'
 
@@ -47,7 +47,7 @@ def MetadataObjectForURL(url):
         match = RE_CHANNEL.findall(url)
         if match:
             channel = match[0] 
-            thumb = "http://www.bbc.co.uk/iplayer/img/tv/%s.jpg" % TV_CHANNEL_LOOKUP[channel]["img_id"] 
+            thumb = R("%s.png" % channel) 
     
         return VideoClipObject(
             title = title,
