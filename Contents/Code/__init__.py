@@ -106,7 +106,7 @@ def TVChannels(title):
                     ),
                 title = channel.title,
                 summary = L(channel_id),
-                thumb = Resource.ContentsOfURLWithFallback(channel.thumb_url)
+                thumb = R("%s.png" % channel_id)
             )
         )
         
@@ -118,8 +118,6 @@ def Channel(channel_id):
     channel = content.tv_channels[channel_id]
 
     oc = ObjectContainer(title1 = channel.title)
-
-    thumb = channel.thumb_url
 
     if channel.has_live_broadcasts():
         try:
@@ -137,7 +135,7 @@ def Channel(channel_id):
                     url = channel.schedule_url + "/today.json"
                 ),
                 title = "Today",
-                thumb = Resource.ContentsOfURLWithFallback(thumb)
+                thumb = R("%s.png" % channel_id)
         )
     )
     
@@ -150,7 +148,7 @@ def Channel(channel_id):
                     url = channel.schedule_url + "/yesterday.json"
                 ),
             title = "Yesterday",
-            thumb = Resource.ContentsOfURLWithFallback(thumb)
+            thumb = R("%s.png" % channel_id)
         )
     )
     
@@ -167,7 +165,7 @@ def Channel(channel_id):
                         url = "%s/%s/%s/%s.json" % (channel.schedule_url, date.year, date.month, date.day)
                     ),
                 title = DAYS[date.weekday()],
-                thumb = Resource.ContentsOfURLWithFallback(thumb)
+                thumb = R("%s.png" % channel_id)
             )
         )
 
