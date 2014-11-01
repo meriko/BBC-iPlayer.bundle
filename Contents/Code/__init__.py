@@ -125,6 +125,21 @@ def Channel(channel_id):
         except:
             pass # Live stream not currently available
 
+
+    title = "Highlights"
+    oc.add(
+        DirectoryObject(
+            key =
+                Callback(
+                    Highlights,
+                    title = title,
+                    url = channel.highlights_url()
+                ),
+            title = title,
+            thumb = R("%s.png" % channel_id)
+        )
+    )
+
     # Add the last week's worth of schedules
     oc.add(
         DirectoryObject(
@@ -168,12 +183,6 @@ def Channel(channel_id):
                 thumb = R("%s.png" % channel_id)
             )
         )
-
-    if channel.has_highlights():
-        highlights_oc = Highlights(title = "Highlights", url = channel.highlights_url())
-        
-        for object in highlights_oc.objects:
-            oc.add(object)
 
     return oc
 

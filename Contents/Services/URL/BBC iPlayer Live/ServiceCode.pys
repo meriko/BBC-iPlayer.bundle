@@ -26,12 +26,31 @@ def MetadataObjectForURL(url):
         except:
             break
         
-        program_url = 'http://www.bbc.co.uk/iplayer/episode/%s' % pid
+        mdo = URLService.MetadataObjectForURL('http://www.bbc.co.uk/iplayer/episode/%s' % pid)
+        title = "Live: " + mdo.title
         
-        mdo = URLService.MetadataObjectForURL(program_url)
-        mdo.title = "Live: " + mdo.title
-        
-        return mdo
+        if mdo.index:
+            return EpisodeObject(
+                title = title,
+                thumb = mdo.thumb,
+                summary = mdo.summary,
+                art = mdo.art,
+                originally_available_at = mdo.originally_available_at,
+                duration = mdo.duration,
+                show = mdo.show,
+                season = mdo.season,
+                index = mdo.index
+                
+            )
+        else:
+            return VideoClipObject(
+                title = title,
+                thumb = mdo.thumb,
+                summary = mdo.summary,
+                art = mdo.art,
+                originally_available_at = mdo.originally_available_at,
+                duration = mdo.duration
+            )
         
     return Ex.LiveMediaNotStarted
 
