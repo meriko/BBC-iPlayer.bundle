@@ -416,7 +416,7 @@ def Episodes(title, url, xpath, page_num = None):
             thumb = None
             
         try:
-            summary = item.xpath(".//*[@class='synopsis']/text()")[0].strip()
+            summary = ''.join(item.xpath(".//*[@class='synopsis']//text()")).strip()
         except:
             summary = None
             
