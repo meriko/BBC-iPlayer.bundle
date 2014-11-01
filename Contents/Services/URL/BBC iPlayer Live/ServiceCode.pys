@@ -22,38 +22,16 @@ def MetadataObjectForURL(url):
 
     for on_air_info in element.xpath("//*[@id = 'nownext']//*[@id = 'now']"):
         try:
-            title = 'Live: ' + ''.join(on_air_info.xpath(".//h2/text()")).strip()
+            pid = on_air_info.xpath(".//a/@href")[0].split("/")[-1]
         except:
-            title = 'Live'
-
-        try:
-            time_info = on_air_info.xpath(".//*[@class = 'broadcast-time']//text()")[0].strip()
-        except:
-            time_info = ''
-            
-        try:
-            subtitle = on_air_info.xpath(".//*[contains(@class = 'subtitle')]//text()")[0].strip()
-        except:
-            subtitle = ''
-     
-        try:
-            description = on_air_info.xpath('.//*[contains(@class, "synopsis")]//text()')[0].strip()
-        except:
-            description = ''
-
-        summary = time_info + '\r\n' + subtitle + '\r\n' + description
-
-        thumb = None
-        match = RE_CHANNEL.findall(url)
-        if match:
-            channel = match[0] 
-            thumb = R("%s.png" % channel) 
-    
-        return VideoClipObject(
-            title = title,
-            summary = summary,
-            thumb = thumb
-        )
+            break
+        
+        program_url = 'http://www.bbc.co.uk/iplayer/episode/%s' % pid
+        
+        mdo = URLService.MetadataObjectForURL(program_url)
+        mdo.title = "Live: " + mdo.title
+        
+        return mdo
         
     return Ex.LiveMediaNotStarted
 
