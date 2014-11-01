@@ -8,6 +8,8 @@ RE_EPISODE = Regex("Episode ([0-9]+)")
 RE_SERIES = Regex("Series ([0-9]+)")
 RE_DURATION = Regex("([0-9]+) *(mins)*")
 
+DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
 ##########################################################################################
 def Start():
     ObjectContainer.title1 = TITLE
@@ -46,18 +48,6 @@ def MainMenu():
         )
     )
     
-    title = "TV Channels"
-    oc.add(
-        DirectoryObject(
-            key = 
-                Callback(
-                    TVChannels,
-                    title = title
-                ),
-            title = title
-        )
-    )
-    
     title = "Categories"
     oc.add(
         DirectoryObject(
@@ -82,7 +72,11 @@ def MainMenu():
             title = title
         )
     )
-    
+
+    channels_oc = TVChannels(title = "TV Channels")
+    for object in channels_oc.objects:
+        oc.add(object)
+  
     title = "Search"
     oc.add(
         InputDirectoryObject(
@@ -133,12 +127,56 @@ def Channel(channel_id):
         except:
             pass # Live stream not currently available
 
+    # Add the last week's worth of schedules
+    oc.add(
+        DirectoryObject(
+            key = 
+                Callback(
+                    VideosFromJSONScheduleList,
+                    title = channel.title,
+                    url = channel.schedule_url + "/today.json"
+                ),
+                title = "Today",
+                thumb = Resource.ContentsOfURLWithFallback(thumb)
+        )
+    )
+    
+    oc.add(
+        DirectoryObject(
+            key = 
+                Callback(
+                    VideosFromJSONScheduleList,
+                    title = channel.title,
+                    url = channel.schedule_url + "/yesterday.json"
+                ),
+            title = "Yesterday",
+            thumb = Resource.ContentsOfURLWithFallback(thumb)
+        )
+    )
+    
+    now = Datetime.Now()
+    for i in range (2, 7):
+        date = now - Datetime.Delta(days = i)
+        
+        oc.add(
+            DirectoryObject(
+                key = 
+                    Callback(
+                        VideosFromJSONScheduleList,
+                        title = channel.title,
+                        url = "%s/%s/%s/%s.json" % (channel.schedule_url, date.year, date.month, date.day)
+                    ),
+                title = DAYS[date.weekday()],
+                thumb = Resource.ContentsOfURLWithFallback(thumb)
+            )
+        )
+
     if channel.has_highlights():
         highlights_oc = Highlights(title = "Highlights", url = channel.highlights_url())
         
         for object in highlights_oc.objects:
             oc.add(object)
-        
+
     return oc
 
 ##########################################################################################
@@ -462,6 +500,66 @@ def Episodes(title, url, xpath, page_num = None):
                 )
             )
         
+    return oc
+
+##########################################################################################
+@route(PREFIX + "/VideosFromJSONScheduleList")
+def VideosFromJSONScheduleList(title, url, channel_id = None):
+    # this function generates the schedule lists for today / yesterday etc. from a JSON feed
+    oc = ObjectContainer(title2 = title)
+    
+    try:
+        jsonObj = JSON.ObjectFromURL(url)
+        
+        if jsonObj is None: 
+            return NoProgrammesFound(oc, title)
+    
+    except:
+        return NoProgrammesFound(oc, title)
+
+    day = jsonObj["schedule"]["day"]
+    
+    for broadcast in day["broadcasts"]:
+        start          = broadcast["start"][11:16]
+        duration       = broadcast["duration"] * 1000 # in milliseconds
+        thisProgramme  = broadcast["programme"]
+        displayTitles  = thisProgramme["display_titles"]
+        title          = displayTitles["title"]
+        foundSubtitle  = displayTitles["subtitle"]
+        pid            = thisProgramme["pid"]
+        image_pid      = thisProgramme["image"]["pid"] if 'image' in thisProgramme else ''
+        short_synopsis = thisProgramme["short_synopsis"]
+      
+        # assume unavailable unless we can find an expiry date of after now
+        available  = False
+        nowDate    = 0
+        expiryDate = 0
+        
+        if thisProgramme.has_key("media"):
+            media = thisProgramme["media"]
+            
+            if media.has_key("expires"): 
+                available = True
+                nowDate   = Datetime.Now()
+                if media["expires"] == None:
+                    # use an expiry date in the distant future
+                    expiryDate = nowDate + Datetime.Delta(days = 1000)
+                else:
+                    # FIXME: this should be GMT and pytz, but to compare dates we need
+                    # to have both dates to be offset naive, or aware
+                    expiryDate = Datetime.ParseDate(media["expires"]).replace(tzinfo = None)
+
+        if available and expiryDate > nowDate:
+            oc.add(
+                EpisodeObject( 
+                    url = config.BBC_SD_PLAYER_URL % pid,
+                    title = "%s %s" % (start, title),
+                    summary = short_synopsis,
+                    duration = duration,
+                    thumb = Resource.ContentsOfURLWithFallback(config.BBC_THUMB_URL % (image_pid, pid))
+                )
+            )
+            
     return oc
 
 ##########################################################################################
