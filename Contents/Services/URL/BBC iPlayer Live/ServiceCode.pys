@@ -151,6 +151,15 @@ def PlayVideo(channel, video_resolution):
     except:
         raise Ex.MediaGeoblocked
 
+    # Fix for Plex Web clients(avoid M3U8 cross domain access denied)
+    if Client.Product in ['Plex Web'] and Client.Platform not in ['Safari']:
+        playlist = HTTP.Request(hls_url).content
+        
+        for line in playlist.splitlines():
+            if line.startswith('http'):
+                hls_url = line
+                break
+
     return IndirectResponse(
         VideoClipObject,
         key = HTTPLiveStreamURL(url = hls_url)
