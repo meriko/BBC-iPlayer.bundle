@@ -1,9 +1,9 @@
 RE_CHANNEL = Regex('iplayer/live/([^/]+)')
 
 TV_CHANNEL_LOOKUP = {
-    "bbcone": {"live_id" : "bbc1", "hd_live_id": "bbc_one_hd"},
-    "bbctwo": {"live_id" : "bbc2", "hd_live_id": "bbc_two_hd"},
-    "bbcthree": {"live_id" : "bbc3", "hd_live_id": "bbc_three_hd"},
+    "bbcone": {"live_id" : "bbc1"},
+    "bbctwo": {"live_id" : "bbc2"},
+    "bbcthree": {"live_id" : "bbc3"},
     "bbcfour": {"live_id" : "bbc4"},
     "cbbc": {"live_id" : "cbbc"},
     "cbeebies": {"live_id" : "cbeebies"},
@@ -11,8 +11,6 @@ TV_CHANNEL_LOOKUP = {
     "bbcparliament": {"live_id" : "parliament"},
     "bbcalba": {"live_id" : "alba"}
 }
-
-NAMESPACES = {'m': 'http://ns.adobe.com/f4m/2.0'}
 
 ##########################################################################################
 def NormalizeURL(url):
@@ -101,52 +99,27 @@ def MediaObjectsForURL(url):
     if match:
         channel = match.groups()[0]
         
-        video_resolutions = [504]
-        
-        if 'hd_live_id' in TV_CHANNEL_LOOKUP[channel]:
-            video_resolutions.insert(0, 720) 
-        
         return [
             MediaObject(
                 parts = [
                     PartObject(
-                        key = HTTPLiveStreamURL(Callback(PlayVideo, channel = channel, video_resolution = video_resolution))
+                        key = HTTPLiveStreamURL(Callback(PlayVideo, channel = channel))
                     )
                 ],
-                video_resolution = video_resolution,
+                video_resolution = 360,
                 audio_channels = 2,
                 optimized_for_streaming = True
-            ) for video_resolution in video_resolutions
+            )
         ]
 
 ##########################################################################################
 @indirect
-def PlayVideo(channel, video_resolution):
-
+def PlayVideo(channel):
     live_id = TV_CHANNEL_LOOKUP[channel]["live_id"]
-    base = String.Decode('aHR0cDovL2EuZmlsZXMuYmJjaS5jby51ay9tZWRpYS9saXZlL21hbmlmZXN0cy9obHMvaGR0di9hay8lcy5tM3U4')
-    hls_url = base % live_id
-    
-    if video_resolution >= 720:
-        # Try to find a HD stream
-        try:
-            live_id = TV_CHANNEL_LOOKUP[channel]["hd_live_id"]
-            base = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGRzL3BjL2FrLyVzLmY0bQ==')
-            element = XML.ElementFromURL(base % live_id)
-            
-            highest_bitrate_found = 0
-            
-            for media in element.xpath("//m:media", namespaces = NAMESPACES):
-                bitrate = int(media.get('bitrate'))
-                
-                if bitrate > highest_bitrate_found:
-                    highest_bitrate_found = bitrate
-                    hls_url = media.get('href').replace('.f4m', '.m3u8')
-        except:
-            # Fallback to SD stream
-            pass
+    base    = String.Decode('aHR0cDovL2EuZmlsZXMuYmJjaS5jby51ay9tZWRpYS9saXZlL21hbmlmZXN0cy9obHMvaGR0di9hay8lcy5tM3U4')
 
     try:
+        hls_url = base % live_id
         headers = HTTP.Request(hls_url).headers
     except:
         raise Ex.MediaGeoblocked
