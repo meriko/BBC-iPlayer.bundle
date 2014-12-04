@@ -1,12 +1,12 @@
 RE_CHANNEL = Regex('iplayer/live/([^/]+)')
 
 TV_CHANNEL_LOOKUP = {
-    "bbcone": {"live_id" : "bbc1"},
-    "bbctwo": {"live_id" : "bbc2"},
-    "bbcthree": {"live_id" : "bbc3"},
-    "bbcfour": {"live_id" : "bbc4"},
-    "cbbc": {"live_id" : "cbbc"},
-    "cbeebies": {"live_id" : "cbeebies"},
+    "bbcone": {"live_id" : "bbc1", "hd_live_id": "bbc_one_hd"},
+    "bbctwo": {"live_id" : "bbc2", "hd_live_id": "bbc_two_hd"},
+    "bbcthree": {"live_id" : "bbc3", "hd_live_id": "bbc_three_hd"},
+    "bbcfour": {"live_id" : "bbc4", "hd_live_id": "bbc_four_hd"},
+    "cbbc": {"live_id" : "cbbc", "hd_live_id": "cbbc_hd"},
+    "cbeebies": {"live_id" : "cbeebies", "hd_live_id": "cbeebies_hd"},
     "bbcnews": {"live_id" : "news_ch"},
     "bbcparliament": {"live_id" : "parliament"},
     "bbcalba": {"live_id" : "alba"}
@@ -99,32 +99,84 @@ def MediaObjectsForURL(url):
     if match:
         channel = match.groups()[0]
         
+        video_resolutions = [504]
+
+        if 'hd_live_id' in TV_CHANNEL_LOOKUP[channel]:
+            video_resolutions.insert(0, 720)
+
         return [
             MediaObject(
                 parts = [
                     PartObject(
-                        key = HTTPLiveStreamURL(Callback(PlayVideo, channel = channel))
+                        key = HTTPLiveStreamURL(Callback(PlayVideo, channel = channel, video_resolution = video_resolution))
                     )
                 ],
-                video_resolution = 360,
+                video_resolution = video_resolution,
                 audio_channels = 2,
                 optimized_for_streaming = True
-            )
+            ) for video_resolution in video_resolutions
         ]
 
 ##########################################################################################
 @indirect
-def PlayVideo(channel):
-    live_id = TV_CHANNEL_LOOKUP[channel]["live_id"]
-    base    = String.Decode('aHR0cDovL2EuZmlsZXMuYmJjaS5jby51ay9tZWRpYS9saXZlL21hbmlmZXN0cy9obHMvaGR0di9hay8lcy5tM3U4')
+def PlayVideo(channel, video_resolution):
+
+    if video_resolution >= 720:
+        live_id = TV_CHANNEL_LOOKUP[channel]["hd_live_id"]
+        base = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGxzL2hkdHYvYWsvJXMubTN1OA==')
+    else:
+        live_id = TV_CHANNEL_LOOKUP[channel]["live_id"]
+        base = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGxzL21vYmlsZV93aWZpL2FrLyVzLm0zdTg=')
+
+    hls_url = base % live_id
 
     try:
-        hls_url = base % live_id
         headers = HTTP.Request(hls_url).headers
     except:
         raise Ex.MediaGeoblocked
+
+    # Fix for Plex Web clients(avoid M3U8 cross domain access denied)
+    if Client.Product in ['Plex Web'] and Client.Platform not in ['Safari']:
+        streams = GetHLSStreams(hls_url)
+
+        # Choose max bitrate stream
+        hls_url = streams[0]['url']
 
     return IndirectResponse(
         VideoClipObject,
         key = HTTPLiveStreamURL(url = hls_url)
     )
+    
+###########################################################
+def GetHLSStreams(url):
+    streams = []
+
+    playList = HTTP.Request(url).content
+
+    # Parse the m3u8 file to get:
+    # - URL
+    # - Resolution
+    # - Bitrate
+    for line in playList.splitlines():
+        if "BANDWIDTH" in line:
+            stream            = {}
+            stream["bitrate"] = int(Regex('(?<=BANDWIDTH=)[0-9]+').search(line).group(0))        
+
+            if "RESOLUTION" in line:
+                stream["resolution"] = int(Regex('(?<=RESOLUTION=)[0-9]+x[0-9]+').search(line).group(0).split("x")[1])
+            else:
+                stream["resolution"] = 0
+
+        elif ".m3u8" in line:
+            path = ''
+            
+            if not line.startswith("http"):
+                path = url[ : url.rfind('/') + 1]
+                
+            stream["url"] = path + line
+                    
+            streams.append(stream)
+                
+    sorted_streams = sorted(streams, key = lambda stream: stream["bitrate"], reverse = True)        
+
+    return sorted_streams
