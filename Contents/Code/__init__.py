@@ -105,7 +105,7 @@ def TVChannels(title):
                         channel_id = channel_id
                     ),
                 title = channel.title,
-                summary = L(channel_id),
+                summary = unicode(L(channel_id)),
                 thumb = R("%s.png" % channel_id)
             )
         )
