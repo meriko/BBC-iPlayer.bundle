@@ -47,6 +47,18 @@ def MainMenu():
             title = title
         )
     )
+
+    title = "Live"
+    oc.add(
+        DirectoryObject(
+            key = 
+                Callback(
+                    Live,
+                    title = title
+                ),
+            title = title
+        )
+    )
     
     title = "Categories"
     oc.add(
@@ -88,6 +100,28 @@ def MainMenu():
     )
     
     return oc
+
+##########################################################################################
+@route(PREFIX + '/live')
+def Live(title):
+    oc = ObjectContainer(title2 = title)
+    
+    for channel_id in content.ordered_tv_channels:
+        channel = content.tv_channels[channel_id]
+        
+        if channel.has_live_broadcasts():
+            try:
+                mdo = URLService.MetadataObjectForURL(channel.live_url())
+                mdo.title = channel.title + " - " + mdo.title
+                
+                oc.add(mdo)
+            except:
+                pass # Live stream not currently available
+                
+    if len(oc) < 1:
+        return NoProgrammesFound(oc, title)
+        
+    return oc     
 
 ##########################################################################################
 @route(PREFIX + '/tvchannels')
