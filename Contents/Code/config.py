@@ -11,3 +11,6 @@ BBC_SEARCH_TV_URL             = BBC_SEARCH_URL + "&filter=tv"
 
 RE_ORDER = Regex('class="cta-add-to-favourites" href="pid-(.*?)"')
 RE_PID = Regex('iplayer/episode/([^/$]{8})')
+
+MP3_URL = String.Decode('aHR0cDovL29wZW4ubGl2ZS5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci81L3NlbGVjdC9tZWRpYXNldC9odHRwLWljeS1tcDMtYS92cGlkLyVzL2Zvcm1hdC9wbHMucGxz')
+HLS_URL = String.Decode('aHR0cDovL29wZW4ubGl2ZS5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci81L3NlbGVjdC92ZXJzaW9uLzIuMC9mb3JtYXQvanNvbi9tZWRpYXNldC9hcHBsZS1pcGFkLWhscy92cGlkLyVz')

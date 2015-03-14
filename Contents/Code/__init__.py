@@ -10,6 +10,8 @@ RE_DURATION = Regex("([0-9]+) *(mins)*")
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
+RE_FILE = Regex('File1=(https?://.+)')
+
 ##########################################################################################
 def Start():
     ObjectContainer.title1 = TITLE
@@ -48,12 +50,24 @@ def MainMenu():
         )
     )
 
-    title = "Live"
+    title = "Live TV"
     oc.add(
         DirectoryObject(
             key = 
                 Callback(
                     Live,
+                    title = title
+                ),
+            title = title
+        )
+    )
+    
+    title = "Live Radio"
+    oc.add(
+        DirectoryObject(
+            key =
+                Callback(
+                    LiveRadio,
                     title = title
                 ),
             title = title
@@ -122,6 +136,33 @@ def Live(title):
         return NoProgrammesFound(oc, title)
         
     return oc     
+
+##########################################################################################
+@route(PREFIX + '/liveradio')
+def LiveRadio(title):
+    oc = ObjectContainer(title2 = title)
+    
+    for station in content.ordered_radio_stations:
+        if Client.Product in ['Plex Web'] and not Client.Platform == 'Safari':
+            oc.add(
+                CreatePlayableObject(
+                    title = content.radio_stations[station],
+                    thumb = R(station + '.png'),
+                    type = 'mp3',
+                    url = config.MP3_URL % station
+                )
+            )
+        else:
+            oc.add(
+                CreatePlayableObject(
+                    title = content.radio_stations[station],
+                    thumb = R(station + '.png'),
+                    type = 'hls',
+                    url = config.HLS_URL % station
+                )
+            )                   
+
+    return oc
 
 ##########################################################################################
 @route(PREFIX + '/tvchannels')
@@ -609,6 +650,118 @@ def NoProgrammesFound(oc, title):
     oc.message = "No programmes found."
     return oc
     
+####################################################################################################
+@route(PREFIX + '/CreatePlayableObject', include_container = bool) 
+def CreatePlayableObject(title, thumb, type, url, include_container = False):
+    items = []
+
+    if type == 'mp3':
+        codec = AudioCodec.MP3
+        container = Container.MP3
+        bitrate = 128
+        key = Callback(PlayMP3, url = url)
+
+    else:
+        codec = AudioCodec.AAC
+        container = 'mpegts'
+        bitrate = 320
+        key = HTTPLiveStreamURL(Callback(PlayHLS, url = url))
     
+    streams = [
+        AudioStreamObject(
+            codec = codec,
+            channels = 2
+        )
+    ]
+
+    items.append(
+        MediaObject(
+            bitrate = bitrate,
+            container = container,
+            audio_codec = codec,
+            audio_channels = 2,
+            parts = [
+                PartObject(
+                    key = key,
+                    streams = streams
+                )
+            ]
+        )
+    )
+
+    if type == 'mp3':
+        obj = TrackObject(
+                key = 
+                    Callback(
+                        CreatePlayableObject,
+                        title = title,
+                        thumb = thumb,
+                        type = type,
+                        url = url,
+                        include_container = True
+                    ),
+                rating_key = title,
+                title = title,
+                items = items,
+                thumb = thumb
+        )
+    
+    else:
+        obj = VideoClipObject(  # NOTE! Need to set VCO here instead of TO because of PHT
+                key = 
+                    Callback(
+                        CreatePlayableObject,
+                        title = title,
+                        thumb = thumb,
+                        type = type,
+                        url = url,
+                        include_container = True
+                    ),
+                rating_key = title,
+                title = title,
+                items = items,
+                thumb = thumb
+        )
+   
+    if include_container:
+        return ObjectContainer(objects = [obj])
+    else:
+        return obj
+
+#################################################################################################### 
+@route(PREFIX + '/PlayMP3.mp3')
+def PlayMP3(url):
+    return PlayAudio(url)
+
+    
+#################################################################################################### 
+@route(PREFIX + '/PlayHLS.m3u8')
+@indirect
+def PlayHLS(url):
+    
+    data = JSON.ObjectFromURL(url)
+    
+    hls_url = data['media'][0]['connection'][0]['href']
+
+    return IndirectResponse(
+        VideoClipObject,
+        key = HTTPLiveStreamURL(url = hls_url)
+    )
+    
+#################################################################################################### 
+def PlayAudio(url):
+    content  = HTTP.Request(url).content
+    file_url = RE_FILE.search(content)
+
+    if file_url:
+        stream_url = file_url.group(1)
+        if stream_url[-1] == '/':
+            stream_url += ';'
+        else:
+            stream_url += '/;'
+
+        return Redirect(stream_url)
+    else:
+        raise Ex.MediaNotAvailable  
 
   
