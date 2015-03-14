@@ -48,7 +48,7 @@ tv_channels = {
     'bbcnews':          Channel('BBC News Channel',  'bbc_news24',       'bbcnews',       None,     'bbc_news24'),
     'parliament':       Channel('BBC Parliament',    'bbc_parliament_1', 'bbcparliament', None,     'bbc_parliament'),
     'bbcalba':          Channel('BBC Alba',          'bbc_alba',         'bbcalba',       None,     'bbc_alba'),
-    's4c':              Channel('S4C',               's4cpbs',           's4c',           None,     's4cpbs')
+    's4c':              Channel('S4C',               's4cpbs',           's4c',           None,     None)
 }
 ordered_tv_channels = ['bbcone', 'bbctwo', 'bbcthree', 'bbcfour', 'cbbc', 'cbeebies', 'bbcnews', 'parliament', 'bbcalba', 's4c']
 
