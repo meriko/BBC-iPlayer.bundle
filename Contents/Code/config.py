@@ -14,3 +14,5 @@ RE_PID = Regex('iplayer/episode/([^/$]{8})')
 
 MP3_URL = String.Decode('aHR0cDovL29wZW4ubGl2ZS5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci81L3NlbGVjdC9tZWRpYXNldC9odHRwLWljeS1tcDMtYS92cGlkLyVzL2Zvcm1hdC9wbHMucGxz')
 HLS_URL = String.Decode('aHR0cDovL29wZW4ubGl2ZS5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci81L3NlbGVjdC92ZXJzaW9uLzIuMC9mb3JtYXQvanNvbi9tZWRpYXNldC9hcHBsZS1pcGFkLWhscy92cGlkLyVz')
+
+RADIO_IMG_URL = 'http://static.bbci.co.uk/radio/690/1.39/img/backgrounds/services/%s_t1.jpg'

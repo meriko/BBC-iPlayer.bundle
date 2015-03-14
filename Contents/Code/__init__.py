@@ -143,11 +143,17 @@ def LiveRadio(title):
     oc = ObjectContainer(title2 = title)
     
     for station in content.ordered_radio_stations:
+        station_img_id = station
+        
+        if station in ['bbc_radio_fourfm']:
+            station_img_id = 'bbc_radio_four'
+        
         if Client.Product in ['Plex Web'] and not Client.Platform == 'Safari':
             oc.add(
                 CreatePlayableObject(
                     title = content.radio_stations[station],
                     thumb = R(station + '.png'),
+                    art = config.RADIO_IMG_URL % station_img_id,
                     type = 'mp3',
                     url = config.MP3_URL % station
                 )
@@ -157,6 +163,7 @@ def LiveRadio(title):
                 CreatePlayableObject(
                     title = content.radio_stations[station],
                     thumb = R(station + '.png'),
+                    art = config.RADIO_IMG_URL % station_img_id,
                     type = 'hls',
                     url = config.HLS_URL % station
                 )
@@ -652,7 +659,7 @@ def NoProgrammesFound(oc, title):
     
 ####################################################################################################
 @route(PREFIX + '/CreatePlayableObject', include_container = bool) 
-def CreatePlayableObject(title, thumb, type, url, include_container = False):
+def CreatePlayableObject(title, thumb, art, type, url, include_container = False):
     items = []
 
     if type == 'mp3':
@@ -696,6 +703,7 @@ def CreatePlayableObject(title, thumb, type, url, include_container = False):
                         CreatePlayableObject,
                         title = title,
                         thumb = thumb,
+                        art = art,
                         type = type,
                         url = url,
                         include_container = True
@@ -703,7 +711,8 @@ def CreatePlayableObject(title, thumb, type, url, include_container = False):
                 rating_key = title,
                 title = title,
                 items = items,
-                thumb = thumb
+                thumb = thumb,
+                art = art
         )
     
     else:
@@ -714,13 +723,15 @@ def CreatePlayableObject(title, thumb, type, url, include_container = False):
                         title = title,
                         thumb = thumb,
                         type = type,
+                        art = art,
                         url = url,
                         include_container = True
                     ),
                 rating_key = title,
                 title = title,
                 items = items,
-                thumb = thumb
+                thumb = thumb,
+                art = art
         )
    
     if include_container:
@@ -732,8 +743,7 @@ def CreatePlayableObject(title, thumb, type, url, include_container = False):
 @route(PREFIX + '/PlayMP3.mp3')
 def PlayMP3(url):
     return PlayAudio(url)
-
-    
+ 
 #################################################################################################### 
 @route(PREFIX + '/PlayHLS.m3u8')
 @indirect
