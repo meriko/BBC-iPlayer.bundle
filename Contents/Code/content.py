@@ -47,9 +47,37 @@ tv_channels = {
     'cbeebies':         Channel('CBeebies',          'cbeebies_1',       'cbeebies',      None,     'cbeebies'),
     'bbcnews':          Channel('BBC News Channel',  'bbc_news24',       'bbcnews',       None,     'bbc_news24'),
     'parliament':       Channel('BBC Parliament',    'bbc_parliament_1', 'bbcparliament', None,     'bbc_parliament'),
-    'bbcalba':          Channel('BBC Alba',          'bbc_alba',         'bbcalba',       None,     'bbc_alba')
+    'bbcalba':          Channel('BBC Alba',          'bbc_alba',         'bbcalba',       None,     'bbc_alba'),
+    's4c':              Channel('S4C',               's4cpbs',           's4c',           None,     None)
 }
-ordered_tv_channels = ['bbcone', 'bbctwo', 'bbcthree', 'bbcfour', 'cbbc', 'cbeebies', 'bbcnews', 'parliament', 'bbcalba']
+ordered_tv_channels = ['bbcone', 'bbctwo', 'bbcthree', 'bbcfour', 'cbbc', 'cbeebies', 'bbcnews', 'parliament', 'bbcalba', 's4c']
+
+radio_stations = {
+    'bbc_radio_one':                    'BBC Radio 1',
+    'bbc_1xtra':                        'BBC 1Xtra',
+    'bbc_radio_two':                    'BBC Radio 2',
+    'bbc_radio_three':                  'BBC Radio 3',
+    'bbc_radio_fourfm':                 'BBC Radio 4',
+    'bbc_radio_four_extra':             'BBC Radio 4 Extra',
+    'bbc_radio_five_live':              'BBC Radio 5 Live',
+    'bbc_radio_five_live_sports_extra': 'BBC Radio 5 Live Sports Extra',
+    'bbc_6music':                       'BBC 6 Music',
+    'bbc_asian_network':                'BBC Asian Network',
+    
+}
+
+ordered_radio_stations = [
+    'bbc_radio_one',
+    'bbc_1xtra',
+    'bbc_radio_two',
+    'bbc_radio_three',
+    'bbc_radio_fourfm',
+    'bbc_radio_four_extra',
+    'bbc_radio_five_live',
+    'bbc_radio_five_live_sports_extra',
+    'bbc_6music',
+    'bbc_asian_network'
+]
 
 def slugify(string):
     slug = string.lower()

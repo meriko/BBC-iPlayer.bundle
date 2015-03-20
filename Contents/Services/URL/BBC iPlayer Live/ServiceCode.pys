@@ -9,7 +9,8 @@ TV_CHANNEL_LOOKUP = {
     "cbeebies": {"live_id" : "cbeebies", "hd_live_id": "cbeebies_hd"},
     "bbcnews": {"live_id" : "news_ch"},
     "bbcparliament": {"live_id" : "parliament"},
-    "bbcalba": {"live_id" : "alba"}
+    "bbcalba": {"live_id" : "alba"},
+    "s4c": {"live_id" : "s4cpbs"}
 }
 
 ##########################################################################################
