@@ -21,44 +21,7 @@ def NormalizeURL(url):
 def MetadataObjectForURL(url):
     element = HTML.ElementFromURL(url, cacheTime = 0)
 
-    for on_air_info in element.xpath("//*[@id = 'nownext']//*[@id = 'now']"):
-        try:
-            pid = on_air_info.xpath(".//a/@href")[0].split("/")[-1]
-        except:
-            pid = None
-        
-        if pid:
-            try:
-                mdo = URLService.MetadataObjectForURL('http://www.bbc.co.uk/iplayer/episode/%s' % pid)
-                title = "Live: " + mdo.title
-                
-                if mdo.index:
-                    return EpisodeObject(
-                        title = title,
-                        thumb = mdo.thumb,
-                        summary = mdo.summary,
-                        art = mdo.art,
-                        originally_available_at = mdo.originally_available_at,
-                        duration = mdo.duration,
-                        show = mdo.show,
-                        season = mdo.season,
-                        index = mdo.index
-                        
-                    )
-                else:
-                    return VideoClipObject(
-                        title = title,
-                        thumb = mdo.thumb,
-                        summary = mdo.summary,
-                        art = mdo.art,
-                        originally_available_at = mdo.originally_available_at,
-                        duration = mdo.duration
-                    )
-            except:
-                # Fallback to scraping
-                pass
-        
-        # Not a recorded program, use scraping
+    for on_air_info in element.xpath("//*[@id = 'nownext']//*[@id = 'now']"):        
         try:
             title = 'Live: ' + ''.join(on_air_info.xpath(".//h2/text()")).strip()
         except:
