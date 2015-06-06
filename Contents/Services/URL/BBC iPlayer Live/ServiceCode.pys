@@ -13,6 +13,8 @@ TV_CHANNEL_LOOKUP = {
     "s4c": {"live_id" : "s4cpbs"}
 }
 
+RAW_HLS_CLIENTS = ['Android', 'iOS', 'Roku', 'Safari']
+
 ##########################################################################################
 def NormalizeURL(url):
     return url
@@ -66,7 +68,9 @@ def MediaObjectsForURL(url):
         video_resolutions = [504]
 
         if 'hd_live_id' in TV_CHANNEL_LOOKUP[channel]:
-            video_resolutions.insert(0, 720)
+            video_resolutions = [720, 576, 504, 396, 360, 288, 252, 216, 144, 108]
+        else:
+            video_resolutions = [504]
 
         return [
             MediaObject(
@@ -83,33 +87,57 @@ def MediaObjectsForURL(url):
 
 ##########################################################################################
 @indirect
-def PlayVideo(channel, video_resolution):
+def PlayVideo(channel, video_resolution, **kwargs):
 
-    if video_resolution >= 720:
+    hls_url = None
+    if video_resolution != 504:
         live_id = TV_CHANNEL_LOOKUP[channel]["hd_live_id"]
-        base = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGxzL2hkdHYvYWsvJXMubTN1OA==')
+        hls_url = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGxzL2hkdHYvYWsvJXMubTN1OA==') % live_id
+        
+        try:
+            streams = GetHLSStreams(hls_url)
+        except:
+            raise Ex.MediaGeoblocked            
+        
+        url = streams[0]['url']
+        url = url[ : url.rfind('/') + 1] + String.Decode("bWFzdGVyLm0zdTgNCg==")
+        
+        try:
+            headers = HTTP.Request(url).headers
+            hls_url = url
+        except:
+            pass
+
     else:
         live_id = TV_CHANNEL_LOOKUP[channel]["live_id"]
-        base = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGxzL21vYmlsZV93aWZpL2FrLyVzLm0zdTg=')
+        hls_url = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGxzL21vYmlsZV93aWZpL2FrLyVzLm0zdTg=') % live_id
 
-    hls_url = base % live_id
+        try:
+            headers = HTTP.Request(hls_url).headers
+        except:
+            raise Ex.MediaGeoblocked
 
-    try:
-        headers = HTTP.Request(hls_url).headers
-    except:
-        raise Ex.MediaGeoblocked
-
-    # Fix for Plex Web clients(avoid M3U8 cross domain access denied)
-    if Client.Product in ['Plex Web'] and Client.Platform not in ['Safari']:
+    if Client.Platform in RAW_HLS_CLIENTS:
+        return IndirectResponse(
+            VideoClipObject,
+            key = HTTPLiveStreamURL(url = hls_url)
+        )        
+    else:
         streams = GetHLSStreams(hls_url)
-
-        # Choose max bitrate stream
+        
+        min_resolution_diff = 1000000000 # some huge number to get it started
         hls_url = streams[0]['url']
+        
+        for stream in streams:
+            diff = abs(video_resolution - stream['resolution'])
+            if diff < min_resolution_diff:
+                min_resolution_diff = diff
+                hls_url             = stream['url']
 
-    return IndirectResponse(
-        VideoClipObject,
-        key = HTTPLiveStreamURL(url = hls_url)
-    )
+        return IndirectResponse(
+            VideoClipObject,
+            key = HTTPLiveStreamURL(url = hls_url)
+        )  
     
 ###########################################################
 def GetHLSStreams(url):
