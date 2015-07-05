@@ -1,16 +1,16 @@
 RE_CHANNEL = Regex('iplayer/live/([^/]+)')
 
 TV_CHANNEL_LOOKUP = {
-    "bbcone": {"live_id" : "bbc1", "hd_live_id": "bbc_one_hd"},
-    "bbctwo": {"live_id" : "bbc2", "hd_live_id": "bbc_two_hd"},
-    "bbcthree": {"live_id" : "bbc3", "hd_live_id": "bbc_three_hd"},
-    "bbcfour": {"live_id" : "bbc4", "hd_live_id": "bbc_four_hd"},
-    "cbbc": {"live_id" : "cbbc", "hd_live_id": "cbbc_hd"},
-    "cbeebies": {"live_id" : "cbeebies", "hd_live_id": "cbeebies_hd"},
-    "bbcnews": {"live_id" : "news_ch"},
-    "bbcparliament": {"live_id" : "parliament"},
-    "bbcalba": {"live_id" : "alba"},
-    "s4c": {"live_id" : "s4cpbs"}
+    "bbcone": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF80L2xpdmUvYmJjX29uZV9oZC9iYmNfb25lX2hkLmlzbWwvbWFzdGVyLm0zdTg='),
+    "bbctwo": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF81L2xpdmUvYmJjX3R3b19oZC9iYmNfdHdvX2hkLmlzbWwvbWFzdGVyLm0zdTg='),
+    "bbcthree": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF8xL2xpdmUvYmJjX3RocmVlX2hkL2JiY190aHJlZV9oZC5pc21sL21hc3Rlci5tM3U4'),
+    "bbcfour": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF8yL2xpdmUvYmJjX2ZvdXJfaGQvYmJjX2ZvdXJfaGQuaXNtbC9tYXN0ZXIubTN1OA=='),
+    "cbbc": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF8xL2xpdmUvY2JiY19oZC9jYmJjX2hkLmlzbWwvbWFzdGVyLm0zdTg='),
+    "cbeebies": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF8yL2xpdmUvY2JlZWJpZXNfaGQvY2JlZWJpZXNfaGQuaXNtbC9tYXN0ZXIubTN1OA=='),
+    "bbcnews": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF81L2xpdmUvYmJjX25ld3NfY2hhbm5lbF9oZC9iYmNfbmV3c19jaGFubmVsX2hkLmlzbWwvbWFzdGVyLm0zdTg='),
+    "bbcparliament": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF8xL2xpdmUvYmJjX3BhcmxpYW1lbnQvYmJjX3BhcmxpYW1lbnQuaXNtbC9tYXN0ZXIubTN1OA=='),
+    "bbcalba": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF8xL2xpdmUvYmJjX2FsYmEvYmJjX2FsYmEuaXNtbC9tYXN0ZXIubTN1OA=='),
+    "s4c": String.Decode('aHR0cDovL3ZzLWhscy11ay1saXZlLmVkZ2VzdWl0ZS5uZXQvcG9vbF85L2xpdmUvczRjcGJzL3M0Y3Bicy5pc21sL21hc3Rlci5tM3U4')
 }
 
 RAW_HLS_CLIENTS = ['Android', 'iOS', 'Roku', 'Safari']
@@ -64,14 +64,12 @@ def MediaObjectsForURL(url):
     match = RE_CHANNEL.search(url)
     if match:
         channel = match.groups()[0]
+        video_resolutions = [720, 576, 504, 396, 360, 288, 252, 216, 144, 108]
         
-        video_resolutions = [504]
-
-        if 'hd_live_id' in TV_CHANNEL_LOOKUP[channel]:
-            video_resolutions = [720, 576, 504, 396, 360, 288, 252, 216, 144, 108]
-        else:
-            video_resolutions = [504]
-
+        if (channel == "bbcparliament") or (channel == "bbcalba") or (channel == "s4c"):
+            # Not available in HD
+            video_resolutions = [504, 396, 360, 288, 252, 216, 144, 108]
+        
         return [
             MediaObject(
                 parts = [
@@ -89,33 +87,12 @@ def MediaObjectsForURL(url):
 @indirect
 def PlayVideo(channel, video_resolution, **kwargs):
 
-    hls_url = None
-    if video_resolution != 504:
-        live_id = TV_CHANNEL_LOOKUP[channel]["hd_live_id"]
-        hls_url = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGxzL2hkdHYvYWsvJXMubTN1OA==') % live_id
-        
-        try:
-            streams = GetHLSStreams(hls_url)
-        except:
-            raise Ex.MediaGeoblocked            
-        
-        url = streams[0]['url']
-        url = url[ : url.rfind('/') + 1] + String.Decode("bWFzdGVyLm0zdTgNCg==")
-        
-        try:
-            headers = HTTP.Request(url).headers
-            hls_url = url
-        except:
-            pass
+    hls_url = TV_CHANNEL_LOOKUP[channel]
 
-    else:
-        live_id = TV_CHANNEL_LOOKUP[channel]["live_id"]
-        hls_url = String.Decode('aHR0cDovL3d3dy5iYmMuY28udWsvbWVkaWFzZWxlY3Rvci9wbGF5bGlzdHMvaGxzL21vYmlsZV93aWZpL2FrLyVzLm0zdTg=') % live_id
-
-        try:
-            headers = HTTP.Request(hls_url).headers
-        except:
-            raise Ex.MediaGeoblocked
+    try:
+        streams = GetHLSStreams(hls_url)
+    except:
+        raise Ex.MediaGeoblocked
 
     if Client.Platform in RAW_HLS_CLIENTS:
         return IndirectResponse(
