@@ -5,6 +5,7 @@ TITLE  = "BBC iPlayer"
 PREFIX = "/video/iplayer"
 
 RE_EPISODE = Regex("Episode ([0-9]+)")
+RE_EPISODE_ALT = Regex("Series [0-9]+ *: *([0-9]+)\.")
 RE_SERIES = Regex("Series ([0-9]+)")
 RE_DURATION = Regex("([0-9]+) *(mins)*")
 
@@ -271,7 +272,7 @@ def Channel(channel_id):
 ##########################################################################################
 @route(PREFIX + '/highlights')
 def Highlights(title, url):    
-    return Episodes(title, url, "//*[contains(@class, 'stream-list')]//*[contains(@class, 'stream-item-editorial-promo')]")
+    return Episodes(title, url, "//*[contains(@class, 'iplayer-stream')]//*[contains(@class, 'grid__item')]")
 
 ##########################################################################################
 @route(PREFIX + '/mostpopular')
@@ -472,6 +473,7 @@ def Episodes(title, url, xpath, page_num = None):
     pageElement = HTML.ElementFromURL(url)
     items = pageElement.xpath(xpath)
 
+    titles = []
     for item in items:
         try:
             url = item.xpath(".//a/@href")[0]
@@ -487,15 +489,35 @@ def Episodes(title, url, xpath, page_num = None):
         try:
             title = item.xpath(".//a/@title")[0]
         except:
+            try:
+                title = item.xpath(".//a//*[contains(@class, 'item__subtitle')]/text()")[0]
+            except:
+                continue
+                
+        if title not in titles:
+            titles.append(title)
+        else:
+            # Duplicate
             continue
 
         try:
-            index = int(RE_EPISODE.search(title).groups()[0])
+            show = item.xpath(".//a//*[contains(@class, 'item__title')]//strong/text()")[0]
+        except:
+            show = None
+
+        try:
+            index = int(RE_EPISODE.search(show).groups()[0])
         except:
             index = None
             
         try:
-            season = int(RE_SERIES.search(title).groups()[0])
+            season = int(RE_SERIES.search(show).groups()[0])
+            
+            if not index:
+                try:
+                    index = int(RE_EPISODE_ALT.search(show).groups()[0])
+                except:
+                    pass
         except:
             season = None
             
@@ -506,19 +528,31 @@ def Episodes(title, url, xpath, page_num = None):
             
         try:
             summary = ''.join(item.xpath(".//*[@class='synopsis']//text()")).strip()
+            
+            if not summary:
+                try:
+                    summary = item.xpath(".//*[contains(@class, 'item__overlay__desc')]/text()")[0]
+                except:
+                    summary = None                
         except:
             summary = None
-            
+   
         try:
             originally_available_at = Datetime.ParseDate(item.xpath(".//*[@class='release']/text()")[0].split(":")[1].strip()).date()
         except:
-            originally_available_at = None
+            try:
+                originally_available_at = Datetime.ParseDate(item.xpath(".//*[contains(@class, 'item__overlay__subtitle')]/text()")[0].split(":")[1]).date()
+            except:
+                originally_available_at = None
             
         try:
             duration = int(RE_DURATION.search(''.join(item.xpath(".//*[@class='duration']/text()"))).groups()[0]) * 60 * 1000
         except:
-            duration = None
-        
+            try:
+                duration = int(RE_DURATION.search(''.join(item.xpath(".//*[contains(@class, 'item__overlay__label')]//text()")).strip().lower()).groups()[0]) * 60 * 1000
+            except:
+                duration = None
+     
         # Check if a link to more episodes exists
         link = item.xpath(".//*[@class='view-more-container stat']/@href")
         
@@ -560,6 +594,7 @@ def Episodes(title, url, xpath, page_num = None):
                 EpisodeObject(
                     url = url,
                     title = title,
+                    show = show,
                     index = index,
                     season = season,
                     thumb = Resource.ContentsOfURLWithFallback(thumb),
