@@ -148,8 +148,8 @@ def LiveRadio(title):
         
         if station in ['bbc_radio_fourfm']:
             station_img_id = 'bbc_radio_four'
-        
-        if Client.Product in ['Plex Web'] and not Client.Platform == 'Safari':
+
+        if Client.Product in ['Plex Web', 'Plex for Xbox One'] and not Client.Platform == 'Safari':
             oc.add(
                 CreatePlayableObject(
                     title = content.radio_stations[station],
