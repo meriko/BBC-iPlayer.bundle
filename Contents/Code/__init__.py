@@ -340,7 +340,7 @@ def ProgramsByLetter(url, letter):
     
     pageElement = HTML.ElementFromURL(url + letter)
     
-    for item in pageElement.xpath("//*[@id='atoz-content']//a[@class='tleo']"):
+    for item in pageElement.xpath("//*[@id='atoz-content']//a[contains(@class,'tleo')]"):
         url = item.xpath("./@href")[0]
         
         if not "/iplayer/brand" in url:
