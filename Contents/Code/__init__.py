@@ -371,44 +371,64 @@ def Programs(title, url):
     oc = ObjectContainer(title2 = title)
     
     brand = url.split("/")[-1]
-    
+    page = 1 
     try:
-        pageElement = HTML.ElementFromURL(config.BBC_URL + '/programmes/%s/episodes/player' % brand)
+        pageElement = HTML.ElementFromURL(config.BBC_URL + '/programmes/%s/episodes/player?page=%d' % (brand, page))
     except:
         pageElement = None
-    
+
     if pageElement:
-        for item in pageElement.xpath("//*[contains(@class, 'programmes-page')]//*[contains(@typeof, 'Episode')]"):
-            url = item.xpath(".//*[@property='video']/a/@resource")[0]
-            
-            if not url.startswith("http"):
-                url = config.BBC_URL + url
+        while (page < 20 and pageElement):
+            for item in pageElement.xpath("//*[contains(@class, 'programmes-page')]//*[contains(@typeof, 'Episode')]"):
+                try:
+                    url = item.xpath(".//*[@property='video']/a/@resource")[0]
+                except:
+                    continue
                 
-            title = item.xpath(".//*[contains(@class, 'programme__title')]//*[@property='name']/text()")[0].strip()
-            thumb = item.xpath(".//meta[@property='image']/@content")[0]
-            summary = item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='description']/text()")[0].strip()
-            
-            try:
-                index = int(item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='position']/text()")[0].strip())
-            except:
-                index = None
+                if not url.startswith("http"):
+                    url = config.BBC_URL + url
+                    
+                try:
+                    title = item.xpath(".//*[contains(@class, 'programme__title')]//*[@property='name']/text()")[0].strip()
+                except:
+                    title = None
+
+                try:
+                    thumb = item.xpath(".//meta[@property='image']/@content")[0]
+                except:
+                    thumb = None
+
+                try:
+                    summary = item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='description']/text()")[0].strip()
+                except:
+                    summary = None
                 
+                try:
+                    index = int(item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='position']/text()")[0].strip())
+                except:
+                    index = None
+                    
+                try:
+                    season = int(item.xpath(".//*[contains(@typeof, 'Season')]//*[@property='name']/text()")[0].strip())
+                except:
+                    season = None
+                
+                oc.add(
+                    EpisodeObject(
+                        url = url,
+                        title = title,
+                        index = index,
+                        season = season,
+                        thumb = Resource.ContentsOfURLWithFallback(thumb),
+                        summary = summary
+                    )
+                )     
+            page = page + 1
             try:
-                season = int(item.xpath(".//*[contains(@typeof, 'Season')]//*[@property='name']/text()")[0].strip())
+                pageElement = HTML.ElementFromURL(config.BBC_URL + '/programmes/%s/episodes/player?page=%d' % (brand, page))
             except:
-                season = None
-            
-            oc.add(
-                EpisodeObject(
-                    url = url,
-                    title = title,
-                    index = index,
-                    season = season,
-                    thumb = Resource.ContentsOfURLWithFallback(thumb),
-                    summary = summary
-                )
-            )     
-            
+                pageElement = None
+        
         return oc
 
     else:
