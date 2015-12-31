@@ -13,7 +13,7 @@ TV_CHANNEL_LOOKUP = {
     "s4c": {"live_id" : "s4cpbs"}
 }
 
-RAW_HLS_CLIENTS = ['Android', 'iOS', 'Roku', 'Safari', 'tvOS']
+RAW_HLS_CLIENTS = ['Android', 'iOS', 'Roku', 'Safari', 'tvOS', 'Mystery 4', 'Konvergo']
 
 ##########################################################################################
 def NormalizeURL(url):
@@ -63,35 +63,15 @@ def MetadataObjectForURL(url):
     return Ex.LiveMediaNotStarted
 
 ##########################################################################################
+@deferred
 def MediaObjectsForURL(url):
 
     match = RE_CHANNEL.search(url)
 
-    if match:
+    if not match:
+        raise Ex.MediaNotAvailable
 
-        channel = match.groups()[0]
-        video_resolutions = [504]
-
-        if 'hd_live_id' in TV_CHANNEL_LOOKUP[channel]:
-            video_resolutions = [720, 576, 504, 396, 360, 288]
-        else:
-            video_resolutions = [504, 396, 360, 288, 252]
-
-        return [
-            MediaObject(
-                parts = [
-                    PartObject(key=HTTPLiveStreamURL(Callback(PlayVideo, channel=channel, video_resolution=video_resolution)))
-                ],
-                video_resolution = video_resolution,
-                audio_channels = 2,
-                optimized_for_streaming = True
-            ) for video_resolution in video_resolutions
-        ]
-
-##########################################################################################
-@indirect
-def PlayVideo(channel, video_resolution, **kwargs):
-
+    channel = match.groups()[0]  
     hls_url = None
 
     if 'hd_live_id' in TV_CHANNEL_LOOKUP[channel]:
@@ -101,50 +81,51 @@ def PlayVideo(channel, video_resolution, **kwargs):
         live_id = TV_CHANNEL_LOOKUP[channel]['live_id']
         hls_url = 'http://a.files.bbci.co.uk/media/live/manifesto/audio_video/simulcast/hls/uk/tv/ak/%s.m3u8' % (live_id)
 
-    try:
-        headers = HTTP.Request(hls_url).headers
-    except:
-        raise Ex.MediaGeoblocked
-    
+    streams = None
     try:
         streams = GetHLSStreams(hls_url)
     except:
-        raise Ex.MediaGeoblocked            
-    
+        raise Ex.MediaGeoblocked
+
     url = streams[0]['url']
     master_url = '%s/master.m3u8' % (url[:url.rfind('/')])
 
     try:
         headers = HTTP.Request(master_url).headers
         hls_url = master_url
+        streams = GetHLSStreams(hls_url)
     except:
         pass
 
     if Client.Platform in RAW_HLS_CLIENTS:
+        return [
+            MediaObject(
+                parts = [
+                    PartObject(key=HTTPLiveStreamURL(hls_url))
+                ],
+                video_resolution = 720,
+                audio_channels = 2,
+                video_frame_rate = 50,
+                optimized_for_streaming = True
+            )
+        ]
 
-        return IndirectResponse(
-            VideoClipObject,
-            key = HTTPLiveStreamURL(url = hls_url)
-        )        
-
-    else:
-        streams = GetHLSStreams(hls_url)
-
-        min_resolution_diff = 1000000000 # some huge number to get it started
-        hls_url = streams[0]['url']
-
-        for stream in streams:
-
-            diff = abs(video_resolution - stream['resolution'])
-
-            if diff < min_resolution_diff:
-                min_resolution_diff = diff
-                hls_url = stream['url']
-
-        return IndirectResponse(
-            VideoClipObject,
-            key = HTTPLiveStreamURL(url=hls_url)
-        )  
+    mo = []
+    for stream in streams:
+        mo.append(
+            MediaObject(
+                parts = [
+                    PartObject(key=HTTPLiveStreamURL(stream['url']))
+                ],
+                video_resolution = stream['resolution'],
+                audio_channels = 2,
+                video_frame_rate = 50 if stream['resolution'] == 720 else 25,
+                bitrate = int(stream['bitrate'] / 1024),
+                optimized_for_streaming = True
+            )
+        )
+        
+    return mo
 
 ###########################################################
 def GetHLSStreams(url):
@@ -180,3 +161,4 @@ def GetHLSStreams(url):
     sorted_streams = sorted(streams, key=lambda stream: stream['bitrate'], reverse=True)
 
     return sorted_streams
+    
