@@ -76,28 +76,25 @@ def MediaObjectsForURL(url):
 
     if 'hd_live_id' in TV_CHANNEL_LOOKUP[channel]:
         live_id = TV_CHANNEL_LOOKUP[channel]['hd_live_id']
-        hls_url = 'http://a.files.bbci.co.uk/media/live/manifesto/audio_video/simulcast/hls/uk/hdtv/ak/%s.m3u8' % (live_id)
+        hls_url = 'http://a.files.bbci.co.uk/media/live/manifesto/audio_video/simulcast/hls/uk/abr_hdtv/ak/%s.m3u8' % (live_id)
     else:
         live_id = TV_CHANNEL_LOOKUP[channel]['live_id']
-        hls_url = 'http://a.files.bbci.co.uk/media/live/manifesto/audio_video/simulcast/hls/uk/tv/ak/%s.m3u8' % (live_id)
-
-    streams = None
-    try:
-        streams = GetHLSStreams(hls_url)
-    except:
-        raise Ex.MediaGeoblocked
-
-    url = streams[0]['url']
-    master_url = '%s/master.m3u8' % (url[:url.rfind('/')])
-
-    try:
-        headers = HTTP.Request(master_url).headers
-        hls_url = master_url
-        streams = GetHLSStreams(hls_url)
-    except:
-        pass
-
-    if Client.Platform in RAW_HLS_CLIENTS:
+        hls_url = 'http://a.files.bbci.co.uk/media/live/manifesto/audio_video/simulcast/hls/uk/hls_tablet/ak/%s.m3u8' % (live_id)
+    
+    # Fix for Plex Web clients(avoid M3U8 cross domain access denied)
+    if Client.Product in ['Plex Web'] and Client.Platform not in ['Safari']:
+        return [
+            MediaObject(
+                parts = [
+                    PartObject(key=HTTPLiveStreamURL(Callback(PlayVideo, url=hls_url)))
+                ],
+                video_resolution = 720,
+                audio_channels = 2,
+                video_frame_rate = 50,
+                optimized_for_streaming = True
+            )
+        ]
+    else:
         return [
             MediaObject(
                 parts = [
@@ -110,55 +107,6 @@ def MediaObjectsForURL(url):
             )
         ]
 
-    mo = []
-    for stream in streams:
-        mo.append(
-            MediaObject(
-                parts = [
-                    PartObject(key=HTTPLiveStreamURL(stream['url']))
-                ],
-                video_resolution = stream['resolution'],
-                audio_channels = 2,
-                video_frame_rate = 50 if stream['resolution'] == 720 else 25,
-                bitrate = int(stream['bitrate'] / 1024),
-                optimized_for_streaming = True
-            )
-        )
-        
-    return mo
-
-###########################################################
-def GetHLSStreams(url):
-
-    streams = []
-
-    playList = HTTP.Request(url).content
-
-    # Parse the m3u8 file to get:
-    # - URL
-    # - Resolution
-    # - Bitrate
-    for line in playList.splitlines():
-        if 'BANDWIDTH' in line:
-            stream = {}
-            stream['bitrate'] = int(Regex('(?<=BANDWIDTH=)[0-9]+').search(line).group(0))
-
-            if 'RESOLUTION' in line:
-                stream['resolution'] = int(Regex('(?<=RESOLUTION=)[0-9]+x[0-9]+').search(line).group(0).split('x')[1])
-            else:
-                stream['resolution'] = 0
-
-        elif '.m3u8' in line:
-            path = ''
-
-            if not line.startswith('http'):
-                path = url[ : url.rfind('/') + 1]
-
-            stream['url'] = path + line
-
-            streams.append(stream)
-
-    sorted_streams = sorted(streams, key=lambda stream: stream['bitrate'], reverse=True)
-
-    return sorted_streams
-    
+##########################################################################################
+def PlayVideo(url):
+    return HTTP.Request(url).content
