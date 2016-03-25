@@ -810,7 +810,7 @@ def CreatePlayableObject(title, thumb, art, type, url, include_container = False
         )
     
     else:
-        if Client.Platform == 'Plex Home Theater':
+        if Client.Platform in ['Plex Home Theater', 'Mystery 4']:
             # Some bug in PHT which can't handle TrackObject below
             obj = VideoClipObject(
                     key = 
