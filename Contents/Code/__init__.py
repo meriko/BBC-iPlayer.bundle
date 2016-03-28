@@ -315,22 +315,20 @@ def Categories(title):
 @route(PREFIX + "/atoz")
 def AToZ(title, url):
     oc = ObjectContainer(title2 = title)
-    
-    for code in range(ord('a'), ord('z') + 1):
-        letter = chr(code)
-        
+
+    for letter in ['0-9'] + list(map(chr, range(ord('a'), ord('z') + 1))):
         oc.add(
             DirectoryObject(
-                key = 
+                key =
                     Callback(
                         ProgramsByLetter,
                         url = url,
                         letter = letter.lower()
-                    ), 
+                    ),
                 title = letter.upper()
             )
         )
-        
+
     return oc
 
 ##########################################################################################
