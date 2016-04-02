@@ -11,6 +11,13 @@
 				<string>^http:\/\/www\.bbc\.co.\uk\/iplayer\/live\/.+</string>
 			</array>
 		</dict>
+		<key>BBC iPlayer</key>
+		<dict>
+			<key>URLPatterns</key>
+			<array>
+				<string>^1http://www\.bbc\.co\.uk/iplayer/episode/[^/$]{8}</string>
+			</array>
+		</dict>
 	</dict>
 </dict>
 </plist>

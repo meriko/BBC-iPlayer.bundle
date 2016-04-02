@@ -1,8 +1,8 @@
 import content
 import config
 
-TITLE  = "BBC iPlayer"
-PREFIX = "/video/iplayer"
+TITLE  = "BBC iPlayer SE"
+PREFIX = "/video/bbciplayer"
 
 RE_EPISODE = Regex("Episode ([0-9]+)")
 RE_EPISODE_ALT = Regex("Series [0-9]+ *: *([0-9]+)\.")
@@ -398,7 +398,7 @@ def Programs(title, url):
             
             oc.add(
                 EpisodeObject(
-                    url = url,
+                    url = "1" + url,
                     title = title,
                     index = index,
                     season = season,
@@ -431,7 +431,7 @@ def Programs(title, url):
             
         oc.add(
             VideoClipObject(
-                url = url,
+                url = "1" + url,
                 title = title,
                 summary = summary,
                 thumb = Resource.ContentsOfURLWithFallback(thumb),
@@ -649,7 +649,7 @@ def Episodes(title, url, xpath, page_num = None):
         else:
             oc.add(
                 EpisodeObject(
-                    url = link,
+                    url = "1" + link,
                     title = title,
                     show = show,
                     index = index,
@@ -733,7 +733,7 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
         if available and expiryDate > nowDate:
             oc.add(
                 EpisodeObject( 
-                    url = config.BBC_SD_PLAYER_URL % pid,
+                    url = "1" + config.BBC_SD_PLAYER_URL % pid,
                     title = "%s %s" % (start, title),
                     summary = short_synopsis,
                     duration = duration,
