@@ -6,11 +6,12 @@ RE_VPID = Regex('"vpid" *: *"(.+?)"')
 ####################################################################################################
 def NormalizeURL(url):
 
-    return url[1:]
+    return url
 
 ####################################################################################################
 def MetadataObjectForURL(url):
 
+    url = url[1:]
     pid = RE_PID.findall(url)[0]
     programme = JSON.ObjectFromURL('http://www.bbc.co.uk/programmes/%s.json' % (pid), headers=HTTP_HEADERS)['programme']
 
@@ -121,6 +122,7 @@ def MetadataObjectForURL(url):
 @deferred
 def MediaObjectsForURL(url):
 
+    url = url[1:]
     try:
         content = HTTP.Request(url).content
         vpid = RE_VPID.search(content).groups()[0]
