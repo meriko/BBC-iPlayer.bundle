@@ -558,7 +558,7 @@ def Episodes(title, url, xpath, page_num = None):
             season = None
             
         try:
-            thumb = item.xpath(".//*[@class='r-image']/@data-ip-src")[0]
+            thumb = item.xpath(".//*[contains(@class,'image')]//*/@srcset")[0]
         except:
             thumb = None
             
