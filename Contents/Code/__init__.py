@@ -471,29 +471,64 @@ def Episodes(title, url, xpath, page_num = None):
     pageElement = HTML.ElementFromURL(url)
     items = pageElement.xpath(xpath)
 
-    titles = []
+    links = []
     for item in items:
+        is_group = False
         try:
-            url = item.xpath(".//a/@href")[0]
+            link = item.xpath(".//a/@href")[0]
 
-            if not '/episode/' in url:
+            if not ('/episode/' in link or '/group/' in link):
                 continue
 
-            if not url.startswith('http'):
-                url = config.BBC_URL + url
+            is_group = '/group/' in link
+            
+            if is_group:
+                if '-' in link.split("group")[1]:
+                    continue
+            
+            if not link.startswith('http'):
+                link = config.BBC_URL + link
         except:
             continue
-        
+
         try:
-            title = item.xpath(".//a/@title")[0]
+            title = item.xpath(".//a/@title")[0].strip()
         except:
+            title = None
+        
+        if not title:
+            if is_group:
+                try:
+                    title = ''.join(item.xpath(".//a//text()")[0]).strip()
+                except:
+                    pass
+            
+            if not title:
+                try:
+                    title = item.xpath(".//a//*[contains(@class, 'item__subtitle')]/text()")[0].strip()
+                except:
+                    title = None
+        
+        if not title:
             try:
-                title = item.xpath(".//a//*[contains(@class, 'item__subtitle')]/text()")[0]
+                if is_group:
+                    title = item.xpath(".//a/strong/text()")[0].strip()
+                else:
+                    title = item.xpath(".//a//*[contains(@class, 'item__title')]//strong/text()")[0].strip()
             except:
-                continue
+                title = None
                 
-        if title not in titles:
-            titles.append(title)
+        if not title:
+            try:
+                title = item.xpath(".//a/strong/text()")[0].strip()
+            except:
+                title = None
+                
+        if not title:
+            continue
+                
+        if link not in links:
+            links.append(link)
         else:
             # Duplicate
             continue
@@ -501,7 +536,10 @@ def Episodes(title, url, xpath, page_num = None):
         try:
             show = item.xpath(".//a//*[contains(@class, 'item__title')]//strong/text()")[0]
         except:
-            show = None
+            if is_group:
+                show = title
+            else:
+                show = None
 
         try:
             index = int(RE_EPISODE.search(show).groups()[0])
@@ -520,18 +558,22 @@ def Episodes(title, url, xpath, page_num = None):
             season = None
             
         try:
-            thumb = item.xpath(".//*[@class='r-image']/@data-ip-src")[0]
+            thumb = item.xpath(".//*[contains(@class,'image')]//*/@srcset")[0]
         except:
             thumb = None
             
         try:
-            summary = ''.join(item.xpath(".//*[@class='synopsis']//text()")).strip()
-            
-            if not summary:
-                try:
-                    summary = item.xpath(".//*[contains(@class, 'item__overlay__desc')]/text()")[0]
-                except:
-                    summary = None                
+            if is_group:
+                summary = item.xpath(".//*[contains(@class,'item-count')]/text()")[0]
+            else:
+                summary = ''.join(item.xpath(".//*[@class='synopsis']//text()")).strip()
+                
+                if not summary:
+                    try:
+                        summary = item.xpath(".//*[contains(@class, 'item__overlay__desc')]/text()")[0]
+                    except:
+                        summary = None
+                              
         except:
             summary = None
    
@@ -550,15 +592,15 @@ def Episodes(title, url, xpath, page_num = None):
                 duration = int(RE_DURATION.search(''.join(item.xpath(".//*[contains(@class, 'item__overlay__label')]//text()")).strip().lower()).groups()[0]) * 60 * 1000
             except:
                 duration = None
-     
+
         # Check if a link to more episodes exists
-        link = item.xpath(".//*[@class='view-more-container stat']/@href")
+        link_more = item.xpath(".//*[contains(@class,'view-more-container')]/@href")
         
-        if len(link) == 1:
-            link = link[0]
+        if len(link_more) == 1:
+            link_more = link_more[0]
             
-            if not link.startswith("http"):
-                link = config.BBC_URL + link
+            if not link_more.startswith("http"):
+                link_more = config.BBC_URL + link_more
             
             try:
                 newTitle = title.split(",")[0]
@@ -578,7 +620,7 @@ def Episodes(title, url, xpath, page_num = None):
                         Callback(
                             Episodes,
                             title = newTitle,
-                            url = link,
+                            url = link_more,
                             xpath = xpath,
                             page_num = page_num
                         ),
@@ -586,11 +628,28 @@ def Episodes(title, url, xpath, page_num = None):
                     thumb = Resource.ContentsOfURLWithFallback(thumb)
                 )
             )
+
+
+        if is_group:            
+            oc.add(
+                DirectoryObject(
+                    key =
+                        Callback(
+                            Episodes,
+                            title = title,
+                            url = link,
+                            xpath = "//*[contains(@class,'iplayer-list')]//*[contains(@class,'list-item')]",
+                            page_num = page_num
+                        ),
+                    title = title,
+                    thumb = Resource.ContentsOfURLWithFallback(thumb)
+                )
+            )
         
         else:
             oc.add(
                 EpisodeObject(
-                    url = url,
+                    url = link,
                     title = title,
                     show = show,
                     index = index,
@@ -749,23 +808,43 @@ def CreatePlayableObject(title, thumb, art, type, url, include_container = False
         )
     
     else:
-        obj = VideoClipObject(  # NOTE! Need to set VCO here instead of TO because of PHT
-                key = 
-                    Callback(
-                        CreatePlayableObject,
-                        title = title,
-                        thumb = thumb,
-                        type = type,
-                        art = art,
-                        url = url,
-                        include_container = True
-                    ),
-                rating_key = title,
-                title = title,
-                items = items,
-                thumb = thumb,
-                art = art
-        )
+        if Client.Platform in ['Plex Home Theater', 'Mystery 4']:
+            # Some bug in PHT which can't handle TrackObject below
+            obj = VideoClipObject(
+                    key = 
+                        Callback(
+                            CreatePlayableObject,
+                            title = title,
+                            thumb = thumb,
+                            type = type,
+                            art = art,
+                            url = url,
+                            include_container = True
+                        ),
+                    rating_key = title,
+                    title = title,
+                    items = items,
+                    thumb = thumb,
+                    art = art
+            )
+        else:
+            obj = TrackObject(
+                    key = 
+                        Callback(
+                            CreatePlayableObject,
+                            title = title,
+                            thumb = thumb,
+                            type = type,
+                            art = art,
+                            url = url,
+                            include_container = True
+                        ),
+                    rating_key = title,
+                    title = title,
+                    items = items,
+                    thumb = thumb,
+                    art = art
+            )
    
     if include_container:
         return ObjectContainer(objects = [obj])
