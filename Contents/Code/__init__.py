@@ -18,7 +18,7 @@ def Start():
     ObjectContainer.title1 = TITLE
 
     HTTP.CacheTime = CACHE_1HOUR
-    HTTP.Headers['User-agent'] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:22.0) Gecko/20100101 Firefox/22.0"
+    HTTP.Headers['User-Agent'] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:22.0) Gecko/20100101 Firefox/22.0"
 
 ##########################################################################################
 @handler(PREFIX, TITLE)
