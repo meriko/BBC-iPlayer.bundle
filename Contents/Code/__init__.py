@@ -3,6 +3,8 @@ import config
 
 TITLE  = "BBC iPlayer"
 PREFIX = "/video/iplayer"
+ART = 'art-default.jpg'
+ICON = 'icon-default.jpg'
 
 RE_EPISODE = Regex("Episode ([0-9]+)")
 RE_EPISODE_ALT = Regex("Series [0-9]+ *: *([0-9]+)\.")
@@ -15,14 +17,16 @@ RE_FILE = Regex('File1=(https?://.+)')
 
 ##########################################################################################
 def Start():
+
     ObjectContainer.title1 = TITLE
 
     HTTP.CacheTime = CACHE_1HOUR
-    HTTP.Headers['User-Agent'] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:22.0) Gecko/20100101 Firefox/22.0"
+    HTTP.Headers['User-Agent'] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:51.0) Gecko/20100101 Firefox/51.0"
 
 ##########################################################################################
-@handler(PREFIX, TITLE)
+@handler(PREFIX, TITLE, art=ART, thumb=ICON)
 def MainMenu():
+
     oc = ObjectContainer()
 
     title = "Highlights"
@@ -37,7 +41,7 @@ def MainMenu():
             title = title
         )
     )
-    
+
     title = "Most Popular"
     oc.add(
         DirectoryObject(
@@ -62,7 +66,7 @@ def MainMenu():
             title = title
         )
     )
-    
+
     title = "Live Radio"
     oc.add(
         DirectoryObject(
@@ -74,7 +78,7 @@ def MainMenu():
             title = title
         )
     )
-    
+
     title = "Categories"
     oc.add(
         DirectoryObject(
@@ -86,7 +90,7 @@ def MainMenu():
             title = title
         )
     )
-    
+
     title = "A-Z"
     oc.add(
         DirectoryObject(
@@ -103,7 +107,7 @@ def MainMenu():
     channels_oc = TVChannels(title = "TV Channels")
     for object in channels_oc.objects:
         oc.add(object)
-  
+
     title = "Search"
     oc.add(
         InputDirectoryObject(
@@ -113,17 +117,19 @@ def MainMenu():
                 prompt = title
         )
     )
-    
+
     return oc
 
 ##########################################################################################
 @route(PREFIX + '/live')
 def Live(title):
+
     oc = ObjectContainer(title2 = title)
-    
+
     for channel_id in content.ordered_tv_channels:
+
         channel = content.tv_channels[channel_id]
-        
+
         if channel.has_live_broadcasts():
             try:
                 mdo = URLService.MetadataObjectForURL(channel.live_url())
@@ -132,20 +138,22 @@ def Live(title):
                 oc.add(mdo)
             except:
                 pass # Live stream not currently available
-                
+
     if len(oc) < 1:
         return NoProgrammesFound(oc, title)
-        
+
     return oc     
 
 ##########################################################################################
 @route(PREFIX + '/liveradio')
 def LiveRadio(title):
+
     oc = ObjectContainer(title2 = title)
-    
+
     for station in content.ordered_radio_stations:
+
         station_img_id = station
-        
+
         if station in ['bbc_radio_fourfm']:
             station_img_id = 'bbc_radio_four'
 
@@ -175,11 +183,12 @@ def LiveRadio(title):
 ##########################################################################################
 @route(PREFIX + '/tvchannels')
 def TVChannels(title):
+
     oc = ObjectContainer(title2 = title)
-    
+
     for channel_id in content.ordered_tv_channels:
         channel = content.tv_channels[channel_id]
-        
+
         oc.add(
             DirectoryObject(
                 key = 
@@ -192,12 +201,13 @@ def TVChannels(title):
                 thumb = R("%s.png" % channel_id)
             )
         )
-        
+
     return oc
 
 ##########################################################################################
 @route(PREFIX + "/Channel")
 def Channel(channel_id):
+
     channel = content.tv_channels[channel_id]
 
     oc = ObjectContainer(title1 = channel.title)
@@ -207,7 +217,6 @@ def Channel(channel_id):
             oc.add(URLService.MetadataObjectForURL(channel.live_url()))
         except:
             pass # Live stream not currently available
-
 
     title = "Highlights"
     oc.add(
@@ -236,7 +245,7 @@ def Channel(channel_id):
                 thumb = R("%s.png" % channel_id)
         )
     )
-    
+
     oc.add(
         DirectoryObject(
             key = 
@@ -249,11 +258,11 @@ def Channel(channel_id):
             thumb = R("%s.png" % channel_id)
         )
     )
-    
+
     now = Datetime.Now()
     for i in range (2, 7):
         date = now - Datetime.Delta(days = i)
-        
+
         oc.add(
             DirectoryObject(
                 key = 
@@ -283,20 +292,20 @@ def MostPopular(title, url):
 @route(PREFIX + '/categories')
 def Categories(title):
     oc = ObjectContainer(title2 = title)
-    
+
     pageElement = HTML.ElementFromURL(config.BBC_URL + '/iplayer')
-    
+
     for item in pageElement.xpath("//*[@class='categories-container']//a[@class='stat']"): 
         url = item.xpath("./@href")[0]
-        
+
         if not "/iplayer/categories" in url:
             continue
-        
+
         if not url.startswith("http"):
             url = config.BBC_URL + url
-            
+
         title = item.xpath("./text()")[0].strip()
-        
+
         oc.add(
             DirectoryObject(
                 key = 
@@ -308,9 +317,9 @@ def Categories(title):
                 title = title
             )
         )
-    
+
     return oc
-    
+
 ##########################################################################################
 @route(PREFIX + "/atoz")
 def AToZ(title, url):
@@ -335,20 +344,20 @@ def AToZ(title, url):
 @route(PREFIX + "/programsbyletter")
 def ProgramsByLetter(url, letter):
     oc = ObjectContainer(title2 = letter.upper())
-    
+
     pageElement = HTML.ElementFromURL(url + letter)
-    
+
     for item in pageElement.xpath("//*[@id='atoz-content']//a[contains(@class,'tleo')]"):
         url = item.xpath("./@href")[0]
-        
+
         if not "/iplayer/brand" in url:
             continue
-        
+
         if not url.startswith("http"):
             url = config.BBC_URL + url
-            
+
         title = item.xpath(".//*[@class='title']/text()")[0].strip()
-        
+
         oc.add(
             DirectoryObject(
                 key = 
@@ -360,42 +369,42 @@ def ProgramsByLetter(url, letter):
                 title = title
             )
         )
-    
+
     return oc
-    
+
 ##########################################################################################
 @route(PREFIX + "/programs")
 def Programs(title, url):
     oc = ObjectContainer(title2 = title)
-    
+
     brand = url.split("/")[-1]
-    
+
     try:
         pageElement = HTML.ElementFromURL(config.BBC_URL + '/programmes/%s/episodes/player' % brand)
     except:
         pageElement = None
-    
+
     if pageElement:
         for item in pageElement.xpath("//*[contains(@class, 'programmes-page')]//*[contains(@typeof, 'Episode')]"):
             url = item.xpath(".//*[@property='video']/a/@resource")[0]
-            
+
             if not url.startswith("http"):
                 url = config.BBC_URL + url
-                
+
             title = item.xpath(".//*[contains(@class, 'programme__title')]//*[@property='name']/text()")[0].strip()
             thumb = item.xpath(".//meta[@property='image']/@content")[0]
             summary = item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='description']/text()")[0].strip()
-            
+
             try:
                 index = int(item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='position']/text()")[0].strip())
             except:
                 index = None
-                
+
             try:
                 season = int(item.xpath(".//*[contains(@typeof, 'Season')]//*[@property='name']/text()")[0].strip())
             except:
                 season = None
-            
+
             oc.add(
                 EpisodeObject(
                     url = url,
@@ -406,29 +415,29 @@ def Programs(title, url):
                     summary = summary
                 )
             )     
-            
+
         return oc
 
     else:
         # Program with only one episode available
         pageElement = HTML.ElementFromURL(url)
-        
+
         url = pageElement.xpath("//meta[@property='og:url']/@content")[0]
         title = ''.join(pageElement.xpath("//*[@id='show-info']//*[@id='title']//text()")).strip()
         summary = ''.join(pageElement.xpath("//*[@id='show-info']//*[@id='long-description']//text()")).strip()
-        
+
         thumb = pageElement.xpath("//meta[@property='og:image']/@content")[0]
-        
+
         try:
             originally_available_at = Datetime.ParseDate(''.join(item.xpath("//*[@id='show-info']//*[@class='release']//text()")).split(":")[1].strip()).date()
         except:
             originally_available_at = None
-            
+
         try:
             duration = int(RE_DURATION.search(''.join(item.xpath("//*[@id='show-info']//*[@class='duration']//text()"))).groups()[0]) * 60 * 1000
         except:
             duration = None
-            
+
         oc.add(
             VideoClipObject(
                 url = url,
@@ -439,35 +448,36 @@ def Programs(title, url):
                 duration = duration
             )
         )
-        
+
         return oc
 
 ##########################################################################################
 @route(PREFIX + "/Search")
 def Search(query):
+
     url = config.BBC_SEARCH_TV_URL % String.Quote(query)
-    
+
     return Episodes(
         title = query,
         url = url,
         xpath = "//*[contains(@class,'iplayer-list')]//*[contains(@class,'list-item')]",
         page_num = 1
     )
- 
+
 ##########################################################################################
 @route(PREFIX + '/episodes', page_num = int)
 def Episodes(title, url, xpath, page_num = None):
     oc = ObjectContainer(title2 = title)
     orgURL = url
-    
+
     if page_num is not None:
         if not '?' in url:
             url = url + "?"
         else:
             url = url + "&"
-            
+
         url = url + "page=%s" % page_num
-        
+
     pageElement = HTML.ElementFromURL(url)
     items = pageElement.xpath(xpath)
 
@@ -481,11 +491,11 @@ def Episodes(title, url, xpath, page_num = None):
                 continue
 
             is_group = '/group/' in link
-            
+
             if is_group:
                 if '-' in link.split("group")[1]:
                     continue
-            
+
             if not link.startswith('http'):
                 link = config.BBC_URL + link
         except:
@@ -495,20 +505,20 @@ def Episodes(title, url, xpath, page_num = None):
             title = item.xpath(".//a/@title")[0].strip()
         except:
             title = None
-        
+
         if not title:
             if is_group:
                 try:
                     title = ''.join(item.xpath(".//a//text()")[0]).strip()
                 except:
                     pass
-            
+
             if not title:
                 try:
                     title = item.xpath(".//a//*[contains(@class, 'item__subtitle')]/text()")[0].strip()
                 except:
                     title = None
-        
+
         if not title:
             try:
                 if is_group:
@@ -517,16 +527,16 @@ def Episodes(title, url, xpath, page_num = None):
                     title = item.xpath(".//a//*[contains(@class, 'item__title')]//strong/text()")[0].strip()
             except:
                 title = None
-                
+
         if not title:
             try:
                 title = item.xpath(".//a/strong/text()")[0].strip()
             except:
                 title = None
-                
+
         if not title:
             continue
-                
+
         if link not in links:
             links.append(link)
         else:
@@ -545,10 +555,10 @@ def Episodes(title, url, xpath, page_num = None):
             index = int(RE_EPISODE.search(show).groups()[0])
         except:
             index = None
-            
+
         try:
             season = int(RE_SERIES.search(show).groups()[0])
-            
+
             if not index:
                 try:
                     index = int(RE_EPISODE_ALT.search(show).groups()[0])
@@ -556,27 +566,27 @@ def Episodes(title, url, xpath, page_num = None):
                     pass
         except:
             season = None
-            
+
         try:
             thumb = item.xpath(".//*[contains(@class,'image')]//*/@srcset")[0]
         except:
             thumb = None
-            
+
         try:
             if is_group:
                 summary = item.xpath(".//*[contains(@class,'item-count')]/text()")[0]
             else:
                 summary = ''.join(item.xpath(".//*[@class='synopsis']//text()")).strip()
-                
+
                 if not summary:
                     try:
                         summary = item.xpath(".//*[contains(@class, 'item__overlay__desc')]/text()")[0]
                     except:
                         summary = None
-                              
+
         except:
             summary = None
-   
+
         try:
             originally_available_at = Datetime.ParseDate(item.xpath(".//*[@class='release']/text()")[0].split(":")[1].strip()).date()
         except:
@@ -595,25 +605,25 @@ def Episodes(title, url, xpath, page_num = None):
 
         # Check if a link to more episodes exists
         link_more = item.xpath(".//*[contains(@class,'view-more-container')]/@href")
-        
+
         if len(link_more) == 1:
             link_more = link_more[0]
-            
+
             if not link_more.startswith("http"):
                 link_more = config.BBC_URL + link_more
-            
+
             try:
                 newTitle = title.split(",")[0]
-                
+
                 try:
                     noEpisodes = item.xpath(".//em/text()")[0].strip()
-                    
+
                     newTitle = newTitle + ': %s episodes' % noEpisodes
                 except:
                     pass
             except:
                 pass
-            
+
             oc.add(
                 DirectoryObject(
                     key =
@@ -628,7 +638,6 @@ def Episodes(title, url, xpath, page_num = None):
                     thumb = Resource.ContentsOfURLWithFallback(thumb)
                 )
             )
-
 
         if is_group:            
             oc.add(
@@ -645,7 +654,7 @@ def Episodes(title, url, xpath, page_num = None):
                     thumb = Resource.ContentsOfURLWithFallback(thumb)
                 )
             )
-        
+
         else:
             oc.add(
                 EpisodeObject(
@@ -680,26 +689,26 @@ def Episodes(title, url, xpath, page_num = None):
                     title = 'More...'
                 )
             )
-        
+
     return oc
 
 ##########################################################################################
 @route(PREFIX + "/VideosFromJSONScheduleList")
 def VideosFromJSONScheduleList(title, url, channel_id = None):
+
     # this function generates the schedule lists for today / yesterday etc. from a JSON feed
     oc = ObjectContainer(title2 = title)
-    
+
     try:
         jsonObj = JSON.ObjectFromURL(url)
-        
+
         if jsonObj is None: 
             return NoProgrammesFound(oc, title)
-    
     except:
         return NoProgrammesFound(oc, title)
 
     day = jsonObj["schedule"]["day"]
-    
+
     for broadcast in day["broadcasts"]:
         start          = broadcast["start"][11:16]
         duration       = broadcast["duration"] * 1000 # in milliseconds
@@ -710,15 +719,15 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
         pid            = thisProgramme["pid"]
         image_pid      = thisProgramme["image"]["pid"] if 'image' in thisProgramme else ''
         short_synopsis = thisProgramme["short_synopsis"]
-      
+
         # assume unavailable unless we can find an expiry date of after now
         available  = False
         nowDate    = 0
         expiryDate = 0
-        
+
         if thisProgramme.has_key("media"):
             media = thisProgramme["media"]
-            
+
             if media.has_key("expires"): 
                 available = True
                 nowDate   = Datetime.Now()
@@ -740,15 +749,16 @@ def VideosFromJSONScheduleList(title, url, channel_id = None):
                     thumb = Resource.ContentsOfURLWithFallback(config.BBC_THUMB_URL % (image_pid, pid))
                 )
             )
-            
+
     return oc
 
 ##########################################################################################
 def NoProgrammesFound(oc, title):
+
     oc.header  = title
     oc.message = "No programmes found."
     return oc
-    
+
 ####################################################################################################
 @route(PREFIX + '/CreatePlayableObject', include_container = bool) 
 def CreatePlayableObject(title, thumb, art, type, url, include_container = False):
@@ -765,7 +775,7 @@ def CreatePlayableObject(title, thumb, art, type, url, include_container = False
         container = 'mpegts'
         bitrate = 320
         key = HTTPLiveStreamURL(Callback(PlayHLS, url = url))
-    
+
     streams = [
         AudioStreamObject(
             codec = codec,
@@ -806,7 +816,7 @@ def CreatePlayableObject(title, thumb, art, type, url, include_container = False
                 thumb = thumb,
                 art = art
         )
-    
+
     else:
         if Client.Platform in ['Plex Home Theater', 'Mystery 4']:
             # Some bug in PHT which can't handle TrackObject below
@@ -845,7 +855,7 @@ def CreatePlayableObject(title, thumb, art, type, url, include_container = False
                     thumb = thumb,
                     art = art
             )
-   
+
     if include_container:
         return ObjectContainer(objects = [obj])
     else:
@@ -862,16 +872,17 @@ def PlayMP3(url):
 def PlayHLS(url):
     
     data = JSON.ObjectFromURL(url)
-    
+
     hls_url = data['media'][0]['connection'][0]['href']
 
     return IndirectResponse(
         VideoClipObject,
         key = HTTPLiveStreamURL(url = hls_url)
     )
-    
+
 #################################################################################################### 
 def PlayAudio(url):
+
     content  = HTTP.Request(url).content
     file_url = RE_FILE.search(content)
 
@@ -884,6 +895,4 @@ def PlayAudio(url):
 
         return Redirect(stream_url)
     else:
-        raise Ex.MediaNotAvailable  
-
-  
+        raise Ex.MediaNotAvailable
