@@ -281,7 +281,7 @@ def Channel(channel_id):
 ##########################################################################################
 @route(PREFIX + '/highlights')
 def Highlights(title, url):    
-    return Episodes(title, url, "//*[contains(@class, 'iplayer-stream')]//*[contains(@class, 'grid__item')]")
+    return Episodes(title, url, "//*[contains(@class, 'iplayer-stream')]//*[contains(@class, '__item')]")
 
 ##########################################################################################
 @route(PREFIX + '/mostpopular')
