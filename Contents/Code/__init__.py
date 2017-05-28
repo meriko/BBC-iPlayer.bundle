@@ -21,7 +21,7 @@ def Start():
     ObjectContainer.title1 = TITLE
 
     HTTP.CacheTime = CACHE_1HOUR
-    HTTP.Headers['User-Agent'] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:51.0) Gecko/20100101 Firefox/51.0"
+    HTTP.Headers['User-Agent'] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:22.0) Gecko/20100101 Firefox/22.0"
 
 ##########################################################################################
 @handler(PREFIX, TITLE, art=ART, thumb=ICON)
@@ -233,43 +233,17 @@ def Channel(channel_id):
     )
 
     # Add the last week's worth of schedules
-    oc.add(
-        DirectoryObject(
-            key = 
-                Callback(
-                    VideosFromJSONScheduleList,
-                    title = channel.title,
-                    url = channel.schedule_url + "/today.json"
-                ),
-                title = "Today",
-                thumb = R("%s.png" % channel_id)
-        )
-    )
-
-    oc.add(
-        DirectoryObject(
-            key = 
-                Callback(
-                    VideosFromJSONScheduleList,
-                    title = channel.title,
-                    url = channel.schedule_url + "/yesterday.json"
-                ),
-            title = "Yesterday",
-            thumb = R("%s.png" % channel_id)
-        )
-    )
-
     now = Datetime.Now()
-    for i in range (2, 7):
+    for i in range (0, 7):
         date = now - Datetime.Delta(days = i)
-
+        
         oc.add(
             DirectoryObject(
                 key = 
                     Callback(
-                        VideosFromJSONScheduleList,
+                        VideosFromSchedule,
                         title = channel.title,
-                        url = "%s/%s/%s/%s.json" % (channel.schedule_url, date.year, date.month, date.day)
+                        url = "%s/%02d%02d%02d" % (channel.schedule_url, date.year, date.month, date.day)
                     ),
                 title = DAYS[date.weekday()],
                 thumb = R("%s.png" % channel_id)
@@ -277,6 +251,18 @@ def Channel(channel_id):
         )
 
     return oc
+
+##########################################################################################
+@route(PREFIX + "/VideosFromSchedule")
+def VideosFromSchedule(title, url, channel_id = None):
+    # this function generates the schedule lists for today / yesterday etc
+    oc = ObjectContainer(title2 = title)
+    
+    return Episodes(
+        title = title,
+        url = url,
+        xpath = "//*[contains(@class, 'broadcast-list')]//*[contains(@class, 'broadcast')]"
+    )
 
 ##########################################################################################
 @route(PREFIX + '/highlights')
@@ -378,43 +364,63 @@ def Programs(title, url):
     oc = ObjectContainer(title2 = title)
 
     brand = url.split("/")[-1]
-
+    page = 1 
     try:
-        pageElement = HTML.ElementFromURL(config.BBC_URL + '/programmes/%s/episodes/player' % brand)
+        pageElement = HTML.ElementFromURL(config.BBC_URL + '/programmes/%s/episodes/player?page=%d' % (brand, page))
     except:
         pageElement = None
 
     if pageElement:
-        for item in pageElement.xpath("//*[contains(@class, 'programmes-page')]//*[contains(@typeof, 'Episode')]"):
-            url = item.xpath(".//*[@property='video']/a/@resource")[0]
+        while (page < 20 and pageElement):
+            for item in pageElement.xpath("//*[contains(@class, 'programmes-page')]//*[contains(@typeof, 'Episode')]"):
+                try:
+                    url = item.xpath(".//*[@property='video']/a/@resource")[0]
+                except:
+                    continue
+                
+                if not url.startswith("http"):
+                    url = config.BBC_URL + url
+                    
+                try:
+                    title = item.xpath(".//*[contains(@class, 'programme__title')]//*[@property='name']/text()")[0].strip()
+                except:
+                    title = None
 
-            if not url.startswith("http"):
-                url = config.BBC_URL + url
+                try:
+                    thumb = item.xpath(".//meta[@property='image']/@content")[0]
+                except:
+                    thumb = None
 
-            title = item.xpath(".//*[contains(@class, 'programme__title')]//*[@property='name']/text()")[0].strip()
-            thumb = item.xpath(".//meta[@property='image']/@content")[0]
-            summary = item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='description']/text()")[0].strip()
-
+                try:
+                    summary = item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='description']/text()")[0].strip()
+                except:
+                    summary = None
+                
+                try:
+                    index = int(item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='position']/text()")[0].strip())
+                except:
+                    index = None
+                    
+                try:
+                    season = int(item.xpath(".//*[contains(@typeof, 'Season')]//*[@property='name']/text()")[0].strip())
+                except:
+                    season = None
+                
+                oc.add(
+                    EpisodeObject(
+                        url = url,
+                        title = title,
+                        index = index,
+                        season = season,
+                        thumb = Resource.ContentsOfURLWithFallback(thumb),
+                        summary = summary
+                    )
+                )     
+            page = page + 1
             try:
-                index = int(item.xpath(".//*[contains(@class, 'programme__synopsis')]//*[@property='position']/text()")[0].strip())
+                pageElement = HTML.ElementFromURL(config.BBC_URL + '/programmes/%s/episodes/player?page=%d' % (brand, page))
             except:
-                index = None
-
-            try:
-                season = int(item.xpath(".//*[contains(@typeof, 'Season')]//*[@property='name']/text()")[0].strip())
-            except:
-                season = None
-
-            oc.add(
-                EpisodeObject(
-                    url = url,
-                    title = title,
-                    index = index,
-                    season = season,
-                    thumb = Resource.ContentsOfURLWithFallback(thumb),
-                    summary = summary
-                )
-            )     
+                pageElement = None
 
         return oc
 
@@ -689,67 +695,7 @@ def Episodes(title, url, xpath, page_num = None):
                     title = 'More...'
                 )
             )
-
-    return oc
-
-##########################################################################################
-@route(PREFIX + "/VideosFromJSONScheduleList")
-def VideosFromJSONScheduleList(title, url, channel_id = None):
-
-    # this function generates the schedule lists for today / yesterday etc. from a JSON feed
-    oc = ObjectContainer(title2 = title)
-
-    try:
-        jsonObj = JSON.ObjectFromURL(url)
-
-        if jsonObj is None: 
-            return NoProgrammesFound(oc, title)
-    except:
-        return NoProgrammesFound(oc, title)
-
-    day = jsonObj["schedule"]["day"]
-
-    for broadcast in day["broadcasts"]:
-        start          = broadcast["start"][11:16]
-        duration       = broadcast["duration"] * 1000 # in milliseconds
-        thisProgramme  = broadcast["programme"]
-        displayTitles  = thisProgramme["display_titles"]
-        title          = displayTitles["title"]
-        foundSubtitle  = displayTitles["subtitle"]
-        pid            = thisProgramme["pid"]
-        image_pid      = thisProgramme["image"]["pid"] if 'image' in thisProgramme else ''
-        short_synopsis = thisProgramme["short_synopsis"]
-
-        # assume unavailable unless we can find an expiry date of after now
-        available  = False
-        nowDate    = 0
-        expiryDate = 0
-
-        if thisProgramme.has_key("media"):
-            media = thisProgramme["media"]
-
-            if media.has_key("expires"): 
-                available = True
-                nowDate   = Datetime.Now()
-                if media["expires"] == None:
-                    # use an expiry date in the distant future
-                    expiryDate = nowDate + Datetime.Delta(days = 1000)
-                else:
-                    # FIXME: this should be GMT and pytz, but to compare dates we need
-                    # to have both dates to be offset naive, or aware
-                    expiryDate = Datetime.ParseDate(media["expires"]).replace(tzinfo = None)
-
-        if available and expiryDate > nowDate:
-            oc.add(
-                EpisodeObject( 
-                    url = config.BBC_SD_PLAYER_URL % pid,
-                    title = "%s %s" % (start, title),
-                    summary = short_synopsis,
-                    duration = duration,
-                    thumb = Resource.ContentsOfURLWithFallback(config.BBC_THUMB_URL % (image_pid, pid))
-                )
-            )
-
+        
     return oc
 
 ##########################################################################################
