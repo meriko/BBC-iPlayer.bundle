@@ -281,7 +281,7 @@ def Categories(title):
 
     pageElement = HTML.ElementFromURL(config.BBC_URL + '/iplayer')
 
-    for item in pageElement.xpath("//*[@class='categories-container']//a[@class='stat']"): 
+    for item in pageElement.xpath("//*[@class='categories-container']//a[@class='typo typo--canary stat']"): 
         url = item.xpath("./@href")[0]
 
         if not "/iplayer/categories" in url:
