@@ -267,12 +267,12 @@ def VideosFromSchedule(title, url, channel_id = None):
 ##########################################################################################
 @route(PREFIX + '/highlights')
 def Highlights(title, url):    
-    return Episodes(title, url, "//*[contains(@class, 'iplayer-stream')]//*[contains(@class, '__item')]")
+    return Episodes(title, url, "//*[contains(@class, 'gel-layout')]//*[contains(@class, '__item')]")
 
 ##########################################################################################
 @route(PREFIX + '/mostpopular')
 def MostPopular(title, url):
-    return Episodes(title, url, "//*[contains(@class, 'iplayer-list')]/*[contains(@class, 'list-item')]")
+    return Episodes(title, url, "//*[contains(@class, 'most-popular')]//*[contains(@class, '__item')]")
 
 ##########################################################################################
 @route(PREFIX + '/categories')
@@ -525,6 +525,12 @@ def Episodes(title, url, xpath, page_num = None):
                 except:
                     title = None
 
+            if not title:
+                try:
+                    title = item.xpath(".//a//*[contains(@class, 'item__title')]/text()")[0].strip()
+                except:
+                    title = None
+
         if not title:
             try:
                 if is_group:
@@ -587,6 +593,18 @@ def Episodes(title, url, xpath, page_num = None):
                 if not summary:
                     try:
                         summary = item.xpath(".//*[contains(@class, 'item__overlay__desc')]/text()")[0]
+                    except:
+                        summary = None
+
+                if not summary:
+                    try:
+                        summary = item.xpath(".//*[contains(@class, 'overlay__text__inner')]/text()")[0]
+                    except:
+                        summary = None
+
+                if not summary:
+                    try:
+                        summary = '\n\n'.join(item.xpath(".//*[contains(@class, '__description')]/text()"))
                     except:
                         summary = None
 
